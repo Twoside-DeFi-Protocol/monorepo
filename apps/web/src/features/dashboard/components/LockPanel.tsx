@@ -125,7 +125,7 @@ export default function LockPanel() {
           abi: erc20Abi,
           functionName: "approve",
           args: [twosideContract, approvalAmount],
-          chainId: selectedBlockchain.chainId
+          chainId: selectedBlockchain.chainId ?? undefined,
         });
         toast.success("Signature", {
           description: `${sig}`,
@@ -134,7 +134,7 @@ export default function LockPanel() {
       {
         title: "Approve Tokens?",
         description: `Do you want to approve ${amount}
-        ${selectedTokens.lockToken[selectedBlockchain.id]?.symbol.toString()}?`,
+              ${selectedTokens.lockToken[selectedBlockchain.id]?.symbol.toString()}?`,
         successMessage: "Your tokens have been approved successfully.",
         loadingTitle: "Processing Transaction",
         loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,
@@ -188,7 +188,7 @@ export default function LockPanel() {
           abi: twosideAbi.abi,
           functionName: "lock",
           args: [tokenAddress, lockAmount],
-          chainId: selectedBlockchain.chainId
+          chainId: selectedBlockchain.chainId ?? undefined,
         });
         toast.success("Signature", {
           description: `${sig}`,
@@ -196,8 +196,8 @@ export default function LockPanel() {
         showConsentDialog({
           title: "Attention!",
           description: `Some wallets may not recongnize derivatives right away.
-            Add the token to your wallet manually using the address from updated
-            derivative info section.`,
+                  Add the token to your wallet manually using the address from updated
+                  derivative info section.`,
           onConfirm: () => {
             return;
           },
@@ -210,7 +210,7 @@ export default function LockPanel() {
       {
         title: "Lock Tokens?",
         description: `Do you want to lock ${amount}
-        ${selectedTokens.lockToken[selectedBlockchain.id]?.symbol.toString()}?`,
+              ${selectedTokens.lockToken[selectedBlockchain.id]?.symbol.toString()}?`,
         successMessage: "Your tokens have been locked successfully.",
         loadingTitle: "Processing Transaction",
         loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,
