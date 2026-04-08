@@ -1,7 +1,7 @@
-export type SupportedBlockchain = "eth" | "base";
+export type SupportedBlockchain = "eth" | "base" | "solana";
 
 export type Blockchain = {
-  chainId: number;
+  chainId: number | null;
   id: SupportedBlockchain;
   name: string;
   logoUrl: string;

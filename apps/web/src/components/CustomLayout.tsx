@@ -13,6 +13,7 @@ import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { DialogProvider } from "./Dialog";
 import { TooltipProvider } from "./ui/tooltip";
+import { SolanaProvider } from "@/features/wallet/config/solanaConfig";
 
 export function CustomLayout({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({
@@ -33,14 +34,16 @@ export function CustomLayout({ children }: { children: ReactNode }) {
   return (
     <DialogProvider>
       <TooltipProvider>
-        <WagmiProvider config={wagmiConfig} reconnectOnMount={false}>
-          <QueryClientProvider client={queryClient}>
-            <Header />
-            {children}
-            <Footer />
-            <Toaster position="bottom-right" richColors />
-          </QueryClientProvider>
-        </WagmiProvider>
+        <SolanaProvider>
+          <WagmiProvider config={wagmiConfig} reconnectOnMount={false}>
+            <QueryClientProvider client={queryClient}>
+              <Header />
+              {children}
+              <Footer />
+              <Toaster position="bottom-right" richColors />
+            </QueryClientProvider>
+          </WagmiProvider>
+        </SolanaProvider>
       </TooltipProvider>
     </DialogProvider>
   );
