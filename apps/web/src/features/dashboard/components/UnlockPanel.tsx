@@ -35,6 +35,10 @@ import { useTokenDerivative } from "../hooks/query/contract";
 import { CoinGeckoTokenType } from "@/types/global";
 import TokenInfo from "./TokenInfo";
 import { isValidFloat } from "../lib/utils";
+import { PublicKey } from "@solana/web3.js";
+import { developerKey, founderKey, getTokenATA } from "../lib/sol/utils";
+import { program } from "../lib/sol/anchor";
+import { BN } from "@anchor-lang/core";
 
 export default function UnlockPanel() {
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
@@ -177,43 +181,82 @@ export default function UnlockPanel() {
       return;
     }
     unlockAmount = parsedAmount * 10 ** decimals;
-    const twosideContract =
-      selectedBlockchain.id == "eth"
-        ? envVariables.twosideContract.eth
-        : envVariables.twosideContract.base;
-    if (twosideContract == "") {
-      toast.error(
-        `${selectedBlockchain.name} Twoside contract address not set.`,
-      );
-      return;
-    }
+
     const derivativeAddress = tokenDerivativeData;
     if (!derivativeAddress) {
       toast.error("Derivative address not found, try again.");
       return;
     }
-    await withConfirmation(
-      async () => {
-        const sig = await writeContractAsync({
-          address: twosideContract as `0x${string}`,
-          abi: twosideAbi.abi,
-          functionName: "unlock",
-          args: [tokenAddress, unlockAmount],
-          chainId: selectedBlockchain.chainId ?? undefined,
-        });
-        toast.success("Signature", {
-          description: `${sig}`,
-        });
-      },
-      {
-        title: "Unlock Tokens?",
-        description: `Do you want to unlock ${amount}
-        ${selectedTokens.unlockToken[selectedBlockchain.id]?.name.toString()}?`,
-        successMessage: "Your tokens have been unlocked successfully.",
-        loadingTitle: "Processing Transaction",
-        loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,
-      },
-    );
+
+    if (selectedBlockchain.id == "solana") {
+      await withConfirmation(
+        async () => {
+          const tokenMint = new PublicKey(tokenAddress);
+          const userKey = new PublicKey(currentUser.address);
+          const userTokenAta = getTokenATA(tokenMint, userKey);
+          const developerTokenAta = getTokenATA(tokenMint, developerKey);
+          const founderTokenAta = getTokenATA(tokenMint, founderKey);
+
+          const tx = await program.methods
+            .unlock(new BN(unlockAmount))
+            .accounts({
+              tokenMint: tokenMint,
+              signer: userKey,
+              signerTokenAta: userTokenAta,
+              developerAta: developerTokenAta,
+              founderAta: founderTokenAta,
+            })
+            .rpc();
+
+          toast.success("Transaction", {
+            description: `${tx}`,
+          });
+        },
+        {
+          title: "Unlock Tokens?",
+          description: `Do you want to unlock ${amount}
+            ${selectedTokens.unlockToken[selectedBlockchain.id]?.name.toString()}?`,
+          successMessage: "Your tokens have been unlocked successfully.",
+          loadingTitle: "Processing Transaction",
+          loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,
+        },
+      );
+    } else {
+      const twosideContract =
+        selectedBlockchain.id == "eth"
+          ? envVariables.twosideContract.eth
+          : envVariables.twosideContract.base;
+      if (twosideContract == "") {
+        toast.error(
+          `${selectedBlockchain.name} Twoside contract address not set.`,
+        );
+        return;
+      }
+
+      await withConfirmation(
+        async () => {
+          const sig = await writeContractAsync({
+            address: twosideContract as `0x${string}`,
+            abi: twosideAbi.abi,
+            functionName: "unlock",
+            args: [tokenAddress, unlockAmount],
+            chainId: selectedBlockchain.chainId ?? undefined,
+          });
+
+          toast.success("Signature", {
+            description: `${sig}`,
+          });
+        },
+        {
+          title: "Unlock Tokens?",
+          description: `Do you want to unlock ${amount}
+            ${selectedTokens.unlockToken[selectedBlockchain.id]?.name.toString()}?`,
+          successMessage: "Your tokens have been unlocked successfully.",
+          loadingTitle: "Processing Transaction",
+          loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,
+        },
+      );
+    }
   };
 
   return (
