@@ -3,32 +3,48 @@ import { connection, developer, founder, tokenMint, user } from "./setup";
 
 (async function main() {
   try {
+    // USER ATA
     const userAta = await splToken.getOrCreateAssociatedTokenAccount(
       connection,
-      user,
+      user, // payer
       tokenMint,
-      user.publicKey
+      user.publicKey,
     );
     console.log("User ATA: ", userAta.address);
-    console.log("");
 
+    // DEVELOPER ATA
     const developerAta = await splToken.getOrCreateAssociatedTokenAccount(
       connection,
-      user,
+      user, // payer
       tokenMint,
-      developer.publicKey
+      developer.publicKey,
     );
     console.log("Developer ATA: ", developerAta.address);
-    console.log("");
 
+    // FOUNDER ATA
     const founderAta = await splToken.getOrCreateAssociatedTokenAccount(
       connection,
-      user,
+      user, // payer
       tokenMint,
-      founder
+      founder,
     );
     console.log("Founder ATA: ", founderAta.address);
+
     console.log("");
+
+    // ✅ MINT TOKENS (user is mint authority)
+    const mintAmount = 1000 * 10 ** 9; // adjust decimals if needed
+
+    // Mint to USER
+    await splToken.mintTo(
+      connection,
+      user, // payer
+      tokenMint,
+      userAta.address,
+      user, // mint authority
+      mintAmount,
+    );
+    console.log("Minted to User");
   } catch (e: any) {
     console.error("Fatal error:", e);
     process.exit(1);

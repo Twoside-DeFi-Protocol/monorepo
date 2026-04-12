@@ -7,7 +7,7 @@ license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "solana"
+name = "twoside"
 
 [features]
 default = []

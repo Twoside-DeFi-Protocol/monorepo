@@ -17,11 +17,11 @@ import { PublicKey } from "@solana/web3.js";
   try {
     const developerAta = splToken.getAssociatedTokenAddressSync(
       tokenMint,
-      developer.publicKey
+      developer.publicKey,
     );
     const founderAta = splToken.getAssociatedTokenAddressSync(
       tokenMint,
-      founder
+      founder,
     );
 
     const [tokenMetadataPDA, tokenMetadataBump] =
@@ -31,7 +31,7 @@ import { PublicKey } from "@solana/web3.js";
           new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID).toBuffer(),
           tokenMint.toBuffer(),
         ],
-        new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID)
+        new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID),
       );
 
     console.log("Locking Tokens :-");
