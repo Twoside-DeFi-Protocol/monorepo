@@ -27,14 +27,13 @@ import Image from "next/image";
 import { blockchains } from "@/constants/blockchains";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletDisconnectButton } from "@solana/wallet-adapter-react-ui";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import dynamic from "next/dynamic";
 
 const WalletMultiButtonDynamic = dynamic(
   async () =>
     (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
-  { ssr: true },
+  { ssr: false },
 );
 
 const formatWalletAddress = (address: string | null) => {
@@ -74,7 +73,7 @@ const WalletContent: React.FC = () => {
 
   useEffect(() => {
     if (selectedBlockchain.id == "solana") {
-      if (isSolanaConnected && solanaAddress && currentChainId) {
+      if (isSolanaConnected && solanaAddress) {
         setCurrentUser({
           address: solanaAddress.toString(),
           loggedIn: true,
@@ -162,29 +161,26 @@ function WalletConnect() {
   const selectedBlockchain = useAtomValue(selectedBlockchainAtom);
   const { switchChain } = useSwitchChain();
   const { isConnected: isEvmConnected, chainId: currentChainId } = useAccount();
-  const { connect: connectSolana } = useWallet();
 
   const handleConnection = (connector?: Connector<CreateConnectorFn>) => {
     const walletAbsent =
       selectedBlockchain.id == "solana"
         ? window.solana == undefined
         : window.ethereum == undefined;
+
     if (typeof window !== "undefined" && walletAbsent) {
       handleNoWalletConnectAttempt(selectedBlockchain);
       return;
     }
-    if (selectedBlockchain.id == "solana") {
-      connectSolana();
-    } else {
+
+    if (selectedBlockchain.id !== "solana") {
       if (
         isEvmConnected &&
         selectedBlockchain.chainId &&
         currentChainId !== selectedBlockchain.chainId
       ) {
-        // If already connected but on wrong chain, switch instead of connect
         switchChain({ chainId: selectedBlockchain.chainId });
       } else {
-        // If not connected at all, proceed with normal connection
         if (selectedBlockchain.chainId && connector) {
           connectEvm({ connector, chainId: selectedBlockchain.chainId });
         }
@@ -195,18 +191,17 @@ function WalletConnect() {
   return (
     <>
       {selectedBlockchain.id == "solana" ? (
-        <Button
-          onClick={() => {
-            handleConnection();
-          }}
-          size="lg"
-          className="bg-black hover:bg-black text-primary-foreground
-                border-primary border-2 transition-all hover:scale-103
-                font-bold text-lg px-8 cursor-pointer"
-        >
-          <Wallet className="h-4 w-4" />
-          <span>Connect Wallet</span>
-        </Button>
+        // ✅ Solana default button styled to match your UI
+        <div className="flex items-center">
+          <div className="flex items-center">
+            <WalletMultiButtonDynamic
+              className="!bg-black hover:!bg-black
+            !text-primary-foreground !border-primary !border-2 transition-all
+            hover:!scale-103 !font-bold !text-lg !px-8 !h-[44px] !rounded-md
+            !flex !items-center !gap-2"
+            />
+          </div>
+        </div>
       ) : (
         <Dialog>
           <DialogTrigger asChild>

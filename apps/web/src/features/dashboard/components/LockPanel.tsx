@@ -36,7 +36,6 @@ import TokenInfo from "./TokenInfo";
 import { useDialog } from "@/components/Dialog";
 import { useTokenDerivative } from "../hooks/query/contract";
 import { isValidFloat } from "../lib/utils";
-import { program } from "../lib/sol/anchor";
 import { BN } from "@anchor-lang/core";
 import { PublicKey } from "@solana/web3.js";
 import {
@@ -46,8 +45,10 @@ import {
   getTokenMetadataPDA,
 } from "../lib/sol/utils";
 import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { useProgram } from "../lib/sol/anchor";
 
 export default function LockPanel() {
+  const { program } = useProgram();
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
   const [selectedTokens, setSelectedTokens] = useAtom(selectedTokensAtom);
   const selectedBlockchain = useAtomValue(selectedBlockchainAtom);
@@ -193,6 +194,10 @@ export default function LockPanel() {
 
       await withConfirmation(
         async () => {
+          if (!program) {
+            toast.error("Program not defined.");
+            return;
+          }
           const tx = await program.methods
             .lock(new BN(lockAmount))
             .accounts({

@@ -37,10 +37,11 @@ import TokenInfo from "./TokenInfo";
 import { isValidFloat } from "../lib/utils";
 import { PublicKey } from "@solana/web3.js";
 import { developerKey, founderKey, getTokenATA } from "../lib/sol/utils";
-import { program } from "../lib/sol/anchor";
 import { BN } from "@anchor-lang/core";
+import { useProgram } from "../lib/sol/anchor";
 
 export default function UnlockPanel() {
+  const { program } = useProgram();
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
   const [selectedTokens, setSelectedTokens] = useAtom(selectedTokensAtom);
   const selectedBlockchain = useAtomValue(selectedBlockchainAtom);
@@ -182,12 +183,6 @@ export default function UnlockPanel() {
     }
     unlockAmount = parsedAmount * 10 ** decimals;
 
-    const derivativeAddress = tokenDerivativeData;
-    if (!derivativeAddress) {
-      toast.error("Derivative address not found, try again.");
-      return;
-    }
-
     if (selectedBlockchain.id == "solana") {
       await withConfirmation(
         async () => {
@@ -197,6 +192,10 @@ export default function UnlockPanel() {
           const developerTokenAta = getTokenATA(tokenMint, developerKey);
           const founderTokenAta = getTokenATA(tokenMint, founderKey);
 
+          if (!program) {
+            toast.error("Program not defined.");
+            return;
+          }
           const tx = await program.methods
             .unlock(new BN(unlockAmount))
             .accounts({
@@ -222,6 +221,12 @@ export default function UnlockPanel() {
         },
       );
     } else {
+      const derivativeAddress = tokenDerivativeData;
+      if (!derivativeAddress) {
+        toast.error("Derivative address not found, try again.");
+        return;
+      }
+
       const twosideContract =
         selectedBlockchain.id == "eth"
           ? envVariables.twosideContract.eth
@@ -456,15 +461,17 @@ export default function UnlockPanel() {
           </div>
         </CardContent>
       </Card>
-      <ThemedButton
-        style="primary"
-        variant="outline"
-        size="lg"
-        className="w-74 md:w-112 mt-2"
-        onClick={handleTokenApproval}
-      >
-        <CircleCheck /> Approve Tokens
-      </ThemedButton>
+      {selectedBlockchain.id != "solana" && (
+        <ThemedButton
+          style="primary"
+          variant="outline"
+          size="lg"
+          className="w-74 md:w-112 mt-2"
+          onClick={handleTokenApproval}
+        >
+          <CircleCheck /> Approve Tokens
+        </ThemedButton>
+      )}
       <ThemedButton
         style="secondary"
         variant="outline"
