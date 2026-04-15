@@ -60,6 +60,7 @@ export default function LockPanel() {
     chain: selectedBlockchain,
     tokenAddressOrMint:
       selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
+    program,
   });
 
   const lockToken = useMemo(() => {

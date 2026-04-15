@@ -1,31 +1,30 @@
-import { Program, AnchorProvider, Idl } from "@coral-xyz/anchor";
+import { Program, AnchorProvider, type Provider } from "@coral-xyz/anchor";
 import type { Twoside } from "./idlType";
 import idl from "./idl.json";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { toast } from "sonner";
+import { useMemo } from "react";
 
 export const useProgram = (): {
-  program: Program<Idl> | undefined;
-  provider: AnchorProvider | undefined;
+  program: Program<Twoside>;
+  provider: Provider;
+  isWalletConnected: boolean;
 } => {
   const { connection } = useConnection();
   const wallet = useWallet();
-  let provider;
-  let program;
+  const isWalletConnected = !!wallet.publicKey;
 
-  if (wallet.publicKey) {
-    provider = new AnchorProvider(connection, wallet as any, {
-      preflightCommitment: "confirmed",
-    });
+  const provider = useMemo<Provider>(() => {
+    if (isWalletConnected) {
+      return new AnchorProvider(connection, wallet as any, {
+        preflightCommitment: "confirmed",
+      });
+    }
+    return { connection };
+  }, [connection, wallet, isWalletConnected]);
 
-    program = new Program(idl as Twoside, provider);
-  } else {
-    toast.error("Solana wallet not connected.");
-    return {
-      program: undefined,
-      provider: undefined,
-    };
-  }
+  const program: Program<Twoside> = useMemo(() => {
+    return new Program(idl as Twoside, provider);
+  }, [provider]);
 
-  return { program, provider };
+  return { program, provider, isWalletConnected };
 };

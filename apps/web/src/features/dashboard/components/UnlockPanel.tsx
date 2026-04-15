@@ -79,6 +79,7 @@ export default function UnlockPanel() {
     chain: selectedBlockchain,
     tokenAddressOrMint:
       selectedTokens.unlockToken[selectedBlockchain.id]?.address ?? "",
+    program,
   });
 
   const { withConfirmation } = useTransactionDialog();
