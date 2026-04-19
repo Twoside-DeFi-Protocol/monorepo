@@ -27,14 +27,6 @@ import Image from "next/image";
 import { blockchains } from "@/constants/blockchains";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
-import "@solana/wallet-adapter-react-ui/styles.css";
-import dynamic from "next/dynamic";
-
-const WalletMultiButtonDynamic = dynamic(
-  async () =>
-    (await import("@solana/wallet-adapter-react-ui")).WalletMultiButton,
-  { ssr: false },
-);
 
 const formatWalletAddress = (address: string | null) => {
   if (!address) return "";
@@ -51,7 +43,7 @@ const WalletContent: React.FC = () => {
     isConnected: isEvmConnected,
     chainId: currentChainId,
   } = useAccount();
-  const { disconnectEvmAsync } = useDisconnect();
+  const { disconnectAsync: disconnectEvmAsync } = useDisconnect();
   const [currentUser, setCurrentUser] = useAtom(currentUserAtom);
   const selectedBlockchain = useAtomValue(selectedBlockchainAtom);
   const router = useRouter();
@@ -161,16 +153,20 @@ function WalletConnect() {
   const selectedBlockchain = useAtomValue(selectedBlockchainAtom);
   const { switchChain } = useSwitchChain();
   const { isConnected: isEvmConnected, chainId: currentChainId } = useAccount();
+  const {
+    wallets: solConnectors,
+    connect: connectSol,
+    select: selectSolWallet,
+  } = useWallet();
 
-  const handleConnection = (connector?: Connector<CreateConnectorFn>) => {
-    const walletAbsent =
-      selectedBlockchain.id == "solana"
-        ? window.solana == undefined
-        : window.ethereum == undefined;
+  const handleConnection = (evmConnector?: Connector<CreateConnectorFn>) => {
+    if (selectedBlockchain.id != "solana") {
+      const walletAbsent = window.ethereum == undefined;
 
-    if (typeof window !== "undefined" && walletAbsent) {
-      handleNoWalletConnectAttempt(selectedBlockchain);
-      return;
+      if (typeof window !== "undefined" && walletAbsent) {
+        handleNoWalletConnectAttempt(selectedBlockchain);
+        return;
+      }
     }
 
     if (selectedBlockchain.id !== "solana") {
@@ -181,27 +177,80 @@ function WalletConnect() {
       ) {
         switchChain({ chainId: selectedBlockchain.chainId });
       } else {
-        if (selectedBlockchain.chainId && connector) {
-          connectEvm({ connector, chainId: selectedBlockchain.chainId });
+        if (selectedBlockchain.chainId && evmConnector) {
+          connectEvm({
+            connector: evmConnector,
+            chainId: selectedBlockchain.chainId,
+          });
         }
       }
+    } else {
+      connectSol();
     }
   };
 
   return (
     <>
       {selectedBlockchain.id == "solana" ? (
-        // ✅ Solana default button styled to match your UI
-        <div className="flex items-center">
-          <div className="flex items-center">
-            <WalletMultiButtonDynamic
-              className="!bg-black hover:!bg-black
-            !text-primary-foreground !border-primary !border-2 transition-all
-            hover:!scale-103 !font-bold !text-lg !px-8 !h-[44px] !rounded-md
-            !flex !items-center !gap-2"
-            />
-          </div>
-        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              size="lg"
+              className="bg-black hover:bg-black text-primary-foreground
+                    border-primary border-2 transition-all hover:scale-103
+                    font-bold text-lg px-8 cursor-pointer"
+            >
+              <Wallet className="h-4 w-4" />
+              <span>Connect Wallet</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="h-76 w-104 neo-shadow-sm border border-custom-primary-color">
+            <DialogHeader className="flex items-center justify-center w-full">
+              <DialogTitle className="px-10 text-center text-custom-primary-color text-2xl mt-10">
+                Connect a {selectedBlockchain.name} wallet to continue
+              </DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="h-38 w-full">
+              <div className="p-4 flex flex-col gap-2">
+                {solConnectors.map((connector) => (
+                  <Button
+                    key={connector.adapter.name}
+                    className="bg-transparent hover:bg-transparent
+                      text-custom-primary-color shadow-none cursor-pointer"
+                    onClick={() => {
+                      selectSolWallet(connector.adapter.name);
+                      handleConnection();
+                    }}
+                  >
+                    <span className="w-full flex justify-between">
+                      <span className="w-full flex items-start gap-2">
+                        <span className="flex items-center gap-2">
+                          {connector.adapter.icon ? (
+                            <Image
+                              src={connector.adapter.icon.trim()}
+                              alt={connector.adapter.name}
+                              height={28}
+                              width={28}
+                            />
+                          ) : null}
+                          <span className="font-bold">
+                            {connector.adapter.name}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="text-gray-700">
+                        {connector.adapter.name === "MetaMask" ||
+                        connector.adapter.name === "Injected"
+                          ? "Default"
+                          : "Detected"}
+                      </span>
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
       ) : (
         <Dialog>
           <DialogTrigger asChild>
