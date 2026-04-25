@@ -1,5 +1,5 @@
 {
-  "address": "HnRePUiCUmEj1ceubGXP1YE41rAQHSqHtPZQYYJpR354",
+  "address": "2hGenUQTYhiREDswze3vCqSqKRfQAerNsNjdq8h948yh",
   "metadata": {
     "name": "twoside",
     "version": "0.1.0",
@@ -538,26 +538,21 @@
     },
     {
       "code": 6007,
-      "name": "InvalidMetaplexProgram",
-      "msg": "Invalid program sent as metaplex program"
-    },
-    {
-      "code": 6008,
       "name": "InvalidDerivativeMetadataAddress",
       "msg": "Invalid derivative metadata address"
     },
     {
-      "code": 6009,
+      "code": 6008,
       "name": "InvalidTokenMetadataAddress",
       "msg": "Invalid token metadata address"
     },
     {
-      "code": 6010,
+      "code": 6009,
       "name": "AmountInsufficientAfterFee",
       "msg": "Fee >= amount (insufficient after fee)"
     },
     {
-      "code": 6011,
+      "code": 6010,
       "name": "Overflow",
       "msg": "Overflow"
     }

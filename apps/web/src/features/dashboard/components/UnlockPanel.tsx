@@ -10,6 +10,7 @@ import {
   Unlock,
   ArrowRightLeft,
   Settings,
+  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,9 +37,10 @@ import { CoinGeckoTokenType } from "@/types/global";
 import TokenInfo from "./TokenInfo";
 import { isValidFloat } from "../lib/utils";
 import { PublicKey } from "@solana/web3.js";
-import { developerKey, founderKey, getTokenATA } from "../lib/sol/utils";
+import { developerKey, founderKey, getTokenATA, toBN } from "../lib/sol/utils";
 import { BN } from "@anchor-lang/core";
 import { useProgram } from "../lib/sol/anchor";
+import { useDialog } from "@/components/Dialog";
 
 export default function UnlockPanel() {
   const { program } = useProgram();
@@ -48,6 +50,7 @@ export default function UnlockPanel() {
   const currentUser = useAtomValue(currentUserAtom);
   const [amount, setAmount] = useState<string>("1");
   const { writeContractAsync } = useWriteContract();
+  const { showConsentDialog } = useDialog();
 
   const unlockToken = useMemo(() => {
     return selectedTokens.unlockToken[selectedBlockchain.id];
@@ -138,9 +141,6 @@ export default function UnlockPanel() {
           args: [twosideContract, approvalAmount],
           chainId: selectedBlockchain.chainId ?? undefined,
         });
-        toast.success("Signature", {
-          description: `${sig}`,
-        });
       },
       {
         title: "Approve Tokens?",
@@ -175,14 +175,36 @@ export default function UnlockPanel() {
     }
     const decimals =
       selectedTokens.unlockToken[selectedBlockchain.id]?.decimals;
-    let unlockAmount = parsedAmount;
     if (!decimals) {
       toast.error(
         "Token decimals not found, toggle to use raw values instead.",
       );
       return;
     }
-    unlockAmount = parsedAmount * 10 ** decimals;
+
+    const userConfirmed = await new Promise((resolve) => {
+      showConsentDialog({
+        title: "Attention!",
+        description: `
+              Unlock ${amount} ${selectedTokens.lockToken[selectedBlockchain.id]?.symbol.toString()}?
+
+              You will:
+              • Burn your derivative tokens
+              • Receive locked tokens
+              • 0.5% fees taken & distributed automatically
+            `,
+        onConfirm: () => {
+          resolve(true); // User clicked confirm
+        },
+        onCancel: () => {
+          resolve(false); // User clicked cancel
+        },
+      });
+    });
+
+    if (!userConfirmed) {
+      return;
+    }
 
     if (selectedBlockchain.id == "solana") {
       await withConfirmation(
@@ -192,13 +214,14 @@ export default function UnlockPanel() {
           const userTokenAta = getTokenATA(tokenMint, userKey);
           const developerTokenAta = getTokenATA(tokenMint, developerKey);
           const founderTokenAta = getTokenATA(tokenMint, founderKey);
+          const solUnlockAmount = toBN(amount, decimals);
 
           if (!program) {
             toast.error("Program not defined.");
             return;
           }
           const tx = await program.methods
-            .unlock(new BN(unlockAmount))
+            .unlock(solUnlockAmount)
             .accounts({
               tokenMint: tokenMint,
               signer: userKey,
@@ -207,21 +230,18 @@ export default function UnlockPanel() {
               founderAta: founderTokenAta,
             })
             .rpc();
-
-          toast.success("Transaction", {
-            description: `${tx}`,
-          });
         },
         {
-          title: "Unlock Tokens?",
-          description: `Do you want to unlock ${amount}
-            ${selectedTokens.unlockToken[selectedBlockchain.id]?.name.toString()}?`,
+          title: "Approve Transaction",
+          description: `Calling unlock() on our anchor program.`,
           successMessage: "Your tokens have been unlocked successfully.",
           loadingTitle: "Processing Transaction",
           loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,
         },
       );
     } else {
+      const evmUnlockAmount = parsedAmount * 10 ** decimals;
+
       const derivativeAddress = tokenDerivativeData;
       if (!derivativeAddress) {
         toast.error("Derivative address not found, try again.");
@@ -245,18 +265,13 @@ export default function UnlockPanel() {
             address: twosideContract as `0x${string}`,
             abi: twosideAbi.abi,
             functionName: "unlock",
-            args: [tokenAddress, unlockAmount],
+            args: [tokenAddress, evmUnlockAmount],
             chainId: selectedBlockchain.chainId ?? undefined,
-          });
-
-          toast.success("Signature", {
-            description: `${sig}`,
           });
         },
         {
-          title: "Unlock Tokens?",
-          description: `Do you want to unlock ${amount}
-            ${selectedTokens.unlockToken[selectedBlockchain.id]?.name.toString()}?`,
+          title: "Approve Transaction",
+          description: `Calling unlock() on our ${selectedBlockchain.name.toLowerCase()} smart contract.`,
           successMessage: "Your tokens have been unlocked successfully.",
           loadingTitle: "Processing Transaction",
           loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,

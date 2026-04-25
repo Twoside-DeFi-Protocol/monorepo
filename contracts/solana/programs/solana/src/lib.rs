@@ -17,7 +17,7 @@ use mpl_token_metadata::{
     ID as metaplex_id,
 };
 
-declare_id!("AoxE7YgvjxSHt9dCQAqruwYL3ksG8s8nSZUKABwkr2AQ");
+declare_id!("2hGenUQTYhiREDswze3vCqSqKRfQAerNsNjdq8h948yh");
 
 #[program]
 pub mod twoside {
@@ -74,12 +74,6 @@ pub mod twoside {
         let signer = &ctx.accounts.signer;
         let signer_token_ata = &ctx.accounts.signer_token_ata;
         let signer_derivative_ata = &ctx.accounts.signer_derivative_ata;
-
-        require_keys_eq!(
-            mpl_token_metadata_program.key(),
-            metaplex_id,
-            TwosideErrorCodes::InvalidMetaplexProgram
-        );
 
         require!(amount != 0, TwosideErrorCodes::ZeroAmountValue);
 
@@ -473,6 +467,7 @@ pub struct Lock<'info> {
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     /// CHECK: This is the Metaplex Token Metadata program
+    #[account(address = metaplex_id)]
     pub mpl_token_metadata_program: UncheckedAccount<'info>,
 
     /// CHECK: Instructions sysvar must be passed in
@@ -742,8 +737,6 @@ pub enum TwosideErrorCodes {
     UninitializedMetadata,
     #[msg("Metadata is not of token submitted.")]
     MetadataMintMismatch,
-    #[msg("Invalid program sent as metaplex program")]
-    InvalidMetaplexProgram,
     #[msg("Invalid derivative metadata address")]
     InvalidDerivativeMetadataAddress,
     #[msg("Invalid token metadata address")]

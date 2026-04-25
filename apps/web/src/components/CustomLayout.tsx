@@ -1,5 +1,5 @@
 "use client";
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
 import { WagmiProvider } from "wagmi";
 import {
   MutationCache,
@@ -16,20 +16,23 @@ import { TooltipProvider } from "./ui/tooltip";
 import { SolanaProvider } from "@/features/wallet/config/solanaConfig";
 
 export function CustomLayout({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({
-    queryCache: new QueryCache({
-      onError: (error) => {
-        console.log("Something went wrong!");
-        console.log(`More Details: ${error.message}`);
-      },
-    }),
-    mutationCache: new MutationCache({
-      onError: (error) => {
-        console.log("Something went wrong!");
-        console.log(`More Details: ${error.message}`);
-      },
-    }),
-  });
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        queryCache: new QueryCache({
+          onError: (error) => {
+            console.log("Something went wrong!");
+            console.log(`More Details: ${error.message}`);
+          },
+        }),
+        mutationCache: new MutationCache({
+          onError: (error) => {
+            console.log("Something went wrong!");
+            console.log(`More Details: ${error.message}`);
+          },
+        }),
+      }),
+  );
 
   return (
     <DialogProvider>

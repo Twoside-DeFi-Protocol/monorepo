@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext, useRef } from "react";
-import { AlertTriangle, Loader2, X } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +24,7 @@ type ConsentDialogState = {
   isOpen?: boolean;
   title: string;
   description: string;
+  inlineDescription?: boolean;
   onConfirm: (confirmed?: boolean) => void;
   onCancel: (confirmed?: boolean) => void;
 };
@@ -48,6 +49,7 @@ const DialogContext = createContext<DialogContextType>({
     isOpen: false,
     title: "",
     description: "",
+    inlineDescription: false,
     onConfirm: () => {},
     onCancel: () => {},
   },
@@ -72,6 +74,7 @@ export const DialogProvider = ({
     isOpen: false,
     title: "",
     description: "",
+    inlineDescription: false,
     onConfirm: () => {},
     onCancel: () => {},
   });
@@ -83,6 +86,7 @@ export const DialogProvider = ({
   });
 
   const showConsentDialog = (config: ConsentDialogState) => {
+    setLoadingState((prev) => ({ ...prev, isOpen: false }));
     setConsentState({
       ...config,
       isOpen: true,
@@ -136,6 +140,7 @@ const ConsentDialog = () => {
   const { consentState, hideConsentDialog } = useDialog();
 
   const isConfirmingRef = useRef(false);
+  const isCancellingRef = useRef(false);
 
   const handleConfirm = () => {
     try {
@@ -153,15 +158,20 @@ const ConsentDialog = () => {
 
   const handleCancel = () => {
     try {
+      isCancellingRef.current = true;
       consentState.onCancel?.(false);
     } catch (e) {
       console.error("consent onCancel error", e);
+    } finally {
+      hideConsentDialog();
+      setTimeout(() => {
+        isCancellingRef.current = false;
+      }, 0);
     }
-    hideConsentDialog();
   };
 
   const handleOpenChange = (open: boolean) => {
-    if (!open && !isConfirmingRef.current) {
+    if (!open && !isConfirmingRef.current && !isCancellingRef.current) {
       handleCancel();
     }
   };
@@ -169,6 +179,7 @@ const ConsentDialog = () => {
   return (
     <AlertDialog open={consentState.isOpen} onOpenChange={handleOpenChange}>
       <AlertDialogContent
+        overlayClassName="bg-transparent"
         className="bg-custom-secondary-color text-custom-primary-text
       neo-shadow-sm border-2 border-custom-primary-color"
       >
@@ -181,9 +192,15 @@ const ConsentDialog = () => {
               {consentState.title}
             </AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="pt-2">
-            {consentState.description}
-          </AlertDialogDescription>
+          {consentState.inlineDescription ? (
+            <AlertDialogDescription className="pt-2 text-left">
+              {consentState.description.trim()}
+            </AlertDialogDescription>
+          ) : (
+            <AlertDialogDescription className="pt-2 text-left whitespace-pre-line">
+              {consentState.description.trim()}
+            </AlertDialogDescription>
+          )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel
@@ -214,13 +231,13 @@ const LoadingDialog = () => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center
+      className="fixed inset-0 z-40 flex items-center justify-center
     backdrop-blur-sm bg-custom-primary-color/30"
     >
       {/* Dialog using Card */}
       <Card
         className="bg-custom-secondary-color text-custom-primary-text
-      relative w-80 mx-4 animate-in fade-in-0 zoom-in-95 duration-300
+      relative z-40 w-80 mx-4 animate-in fade-in-0 zoom-in-95 duration-300
       neo-shadow-sm border-2 border-custom-primary-color"
       >
         <CardHeader className="text-center pb-4">

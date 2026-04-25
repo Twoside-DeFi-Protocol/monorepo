@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/twoside.json`.
  */
 export type Twoside = {
-  address: "HnRePUiCUmEj1ceubGXP1YE41rAQHSqHtPZQYYJpR354";
+  address: "2hGenUQTYhiREDswze3vCqSqKRfQAerNsNjdq8h948yh";
   metadata: {
     name: "twoside";
     version: "0.1.0";
@@ -864,26 +864,21 @@ export type Twoside = {
     },
     {
       code: 6007;
-      name: "invalidMetaplexProgram";
-      msg: "Invalid program sent as metaplex program";
-    },
-    {
-      code: 6008;
       name: "invalidDerivativeMetadataAddress";
       msg: "Invalid derivative metadata address";
     },
     {
-      code: 6009;
+      code: 6008;
       name: "invalidTokenMetadataAddress";
       msg: "Invalid token metadata address";
     },
     {
-      code: 6010;
+      code: 6009;
       name: "amountInsufficientAfterFee";
       msg: "Fee >= amount (insufficient after fee)";
     },
     {
-      code: 6011;
+      code: 6010;
       name: "overflow";
       msg: "overflow";
     },

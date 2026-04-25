@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CircleCheck,
   Lock,
+  Loader2,
   ArrowRightLeft,
   Settings,
 } from "lucide-react";
@@ -36,19 +37,23 @@ import TokenInfo from "./TokenInfo";
 import { useDialog } from "@/components/Dialog";
 import { useTokenDerivative } from "../hooks/query/contract";
 import { isValidFloat } from "../lib/utils";
-import { BN } from "@anchor-lang/core";
-import { PublicKey } from "@solana/web3.js";
+import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
+import { PublicKey, Transaction } from "@solana/web3.js";
 import {
   developerKey,
   founderKey,
   getTokenATA,
   getTokenMetadataPDA,
+  toBN,
 } from "../lib/sol/utils";
 import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import { useProgram } from "../lib/sol/anchor";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 export default function LockPanel() {
   const { program } = useProgram();
+  const { connection } = useConnection();
+  const { sendTransaction } = useWallet();
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
   const [selectedTokens, setSelectedTokens] = useAtom(selectedTokensAtom);
   const selectedBlockchain = useAtomValue(selectedBlockchainAtom);
@@ -90,6 +95,61 @@ export default function LockPanel() {
   };
 
   const { withConfirmation } = useTransactionDialog();
+
+  const showDerivativeWalletNotice = () => {
+    showConsentDialog({
+      title: "Attention!",
+      description: `Some wallets may not recongnize derivatives right away.
+                      Add the token to your wallet manually using the address from updated
+                      derivative info section.`,
+      onConfirm: () => {
+        return;
+      },
+      onCancel: () => {
+        return;
+      },
+    });
+  };
+
+  const createAtaIfMissing = async ({
+    ata,
+    owner,
+    tokenMint,
+    transactionNumber,
+  }: {
+    ata: PublicKey;
+    owner: PublicKey;
+    tokenMint: PublicKey;
+    transactionNumber: 1 | 2;
+  }) => {
+    const ataAccount = await connection.getAccountInfo(ata);
+    if (ataAccount) {
+      return;
+    }
+
+    await withConfirmation(
+      async () => {
+        const transaction = new Transaction().add(
+          createAssociatedTokenAccountInstruction(
+            new PublicKey(currentUser.address),
+            ata,
+            owner,
+            tokenMint,
+          ),
+        );
+
+        const signature = await sendTransaction(transaction, connection);
+        await connection.confirmTransaction(signature, "confirmed");
+      },
+      {
+        title: `Approve Transaction ${transactionNumber}`,
+        description: "Set up necessary accounts for lock.",
+        successMessage: `Transaction ${transactionNumber} completed successfully.`,
+        loadingTitle: "Setting up accounts...",
+        loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,
+      },
+    );
+  };
 
   const handleTokenApproval = async () => {
     if (!currentUser.loggedIn) {
@@ -139,9 +199,6 @@ export default function LockPanel() {
           args: [twosideContract, approvalAmount],
           chainId: selectedBlockchain.chainId ?? undefined,
         });
-        toast.success("Signature", {
-          description: `${sig}`,
-        });
       },
       {
         title: "Approve Tokens?",
@@ -175,23 +232,59 @@ export default function LockPanel() {
       return;
     }
     const decimals = selectedTokens.lockToken[selectedBlockchain.id]?.decimals;
-    let lockAmount = parsedAmount;
     if (!decimals) {
       toast.error(
         "Token decimals not found, toggle to use raw values instead.",
       );
       return;
     }
-    lockAmount = parsedAmount * 10 ** decimals;
+
+    const userConfirmed = await new Promise((resolve) => {
+      showConsentDialog({
+        title: "Attention!",
+        description: `
+              Lock ${amount} ${selectedTokens.lockToken[selectedBlockchain.id]?.symbol.toString()}?
+
+              You will:
+              • Lock your tokens
+              • Receive derivative tokens
+              • 0.5% fees taken & distributed automatically
+            `,
+        onConfirm: () => {
+          resolve(true); // User clicked confirm
+        },
+        onCancel: () => {
+          resolve(false); // User clicked cancel
+        },
+      });
+    });
+
+    if (!userConfirmed) {
+      return;
+    }
 
     if (selectedBlockchain.id == "solana") {
       const tokenMint = new PublicKey(tokenAddress);
-      const { pda: tokenMetadataPDA, bump: tokenMetadataBump } =
-        getTokenMetadataPDA(tokenMint);
+      const { pda: tokenMetadataPDA } = getTokenMetadataPDA(tokenMint);
       const userKey = new PublicKey(currentUser.address);
       const userTokenAta = getTokenATA(tokenMint, userKey);
       const developerTokenAta = getTokenATA(tokenMint, developerKey);
       const founderTokenAta = getTokenATA(tokenMint, founderKey);
+      const solLockAmount = toBN(amount, decimals);
+
+      await createAtaIfMissing({
+        ata: founderTokenAta,
+        owner: founderKey,
+        tokenMint,
+        transactionNumber: 1,
+      });
+
+      await createAtaIfMissing({
+        ata: developerTokenAta,
+        owner: developerKey,
+        tokenMint,
+        transactionNumber: 2,
+      });
 
       await withConfirmation(
         async () => {
@@ -200,7 +293,7 @@ export default function LockPanel() {
             return;
           }
           const tx = await program.methods
-            .lock(new BN(lockAmount))
+            .lock(solLockAmount)
             .accounts({
               tokenMint: tokenMint,
               tokenMetadata: tokenMetadataPDA,
@@ -212,35 +305,20 @@ export default function LockPanel() {
             })
             .rpc();
 
-          toast.success("Transaction", {
-            description: `${tx}`,
-          });
-
-          showConsentDialog({
-            title: "Attention!",
-            description: `Some wallets may not recongnize derivatives right away.
-                      Add the token to your wallet manually using the address from updated
-                      derivative info section.`,
-            onConfirm: () => {
-              return;
-            },
-            onCancel: () => {
-              return;
-            },
-          });
-
+          showDerivativeWalletNotice();
           refetchDerivativeData();
         },
         {
-          title: "Lock Tokens?",
-          description: `Do you want to lock ${amount}
-                  ${selectedTokens.lockToken[selectedBlockchain.id]?.symbol.toString()}?`,
-          successMessage: "Your tokens have been locked successfully.",
-          loadingTitle: "Processing Transaction",
+          title: "Approve Transaction 3",
+          description: `Calling lock() on our anchor program.`,
+          successMessage: "Lock has succeeded.",
+          loadingTitle: "Locking tokens...",
           loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,
         },
       );
     } else {
+      const evmLockAmount = parsedAmount * 10 ** decimals;
+
       const twosideContract =
         selectedBlockchain.id == "eth"
           ? envVariables.twosideContract.eth
@@ -258,19 +336,15 @@ export default function LockPanel() {
             address: twosideContract as `0x${string}`,
             abi: twosideAbi.abi,
             functionName: "lock",
-            args: [tokenAddress, lockAmount],
+            args: [tokenAddress, evmLockAmount],
             chainId: selectedBlockchain.chainId ?? undefined,
-          });
-
-          toast.success("Signature", {
-            description: `${sig}`,
           });
 
           showConsentDialog({
             title: "Attention!",
             description: `Some wallets may not recongnize derivatives right away.
-                      Add the token to your wallet manually using the address from updated
-                      derivative info section.`,
+              Add the token to your wallet manually using
+              the address from update derivative info section.`,
             onConfirm: () => {
               return;
             },
@@ -282,10 +356,9 @@ export default function LockPanel() {
           refetchDerivativeData();
         },
         {
-          title: "Lock Tokens?",
-          description: `Do you want to lock ${amount}
-                  ${selectedTokens.lockToken[selectedBlockchain.id]?.symbol.toString()}?`,
-          successMessage: "Your tokens have been locked successfully.",
+          title: "Approve Transaction",
+          description: `Calling lock() on our ${selectedBlockchain.name.toLowerCase()} smart contract.`,
+          successMessage: "Your tokens have been locked successfully",
           loadingTitle: "Processing Transaction",
           loadingDescription: `Please wait while your transaction is confirmed on ${selectedBlockchain.name}...`,
         },
@@ -504,9 +577,13 @@ export default function LockPanel() {
         <Lock /> Lock Tokens
       </ThemedButton>
       <div className="p-2 text-sm text-muted-foreground text-center">
-        Disclaimer: You'll have to pay for deploying the derivative of the token
-        you are locking if it hasn't been locked before on twoside even once on
-        the specific chain you are on.
+        {selectedBlockchain.id == "solana"
+          ? `Disclaimer: You'll have to pay for setting up ATAs for internal fee
+          distribution and deploying the derivative of the token you are locking
+          if it hasn't been locked before on twoside even once on the solana blockchain`
+          : `Disclaimer: You'll have to pay for deploying the derivative of the token you are locking
+          if it hasn't been locked before on twoside even once on the specific
+          chain you are on.`}
       </div>
     </div>
   );

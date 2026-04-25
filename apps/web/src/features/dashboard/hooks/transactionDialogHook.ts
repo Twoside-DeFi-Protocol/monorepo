@@ -5,6 +5,11 @@ export const useTransactionDialog = () => {
   const { showConsentDialog, showLoadingDialog, hideLoadingDialog } =
     useDialog();
 
+  const waitForNextPaint = () =>
+    new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+
   const withConfirmation = async <T>(
     action: () => Promise<T>,
     config: {
@@ -33,6 +38,8 @@ export const useTransactionDialog = () => {
             });
 
             const result = await action();
+            hideLoadingDialog();
+            await waitForNextPaint();
 
             toast.success("Success", {
               description: config.successMessage,
@@ -40,12 +47,12 @@ export const useTransactionDialog = () => {
 
             resolve(result);
           } catch (error: any) {
+            hideLoadingDialog();
+            await waitForNextPaint();
             toast.error("Transaction Failed", {
               description: error.message || "An error occurred",
             });
             reject(error);
-          } finally {
-            hideLoadingDialog();
           }
         },
         onCancel: () => {

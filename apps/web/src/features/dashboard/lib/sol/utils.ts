@@ -53,3 +53,9 @@ export function getTokenDerivativePDA(mint: anchor.web3.PublicKey): {
     bump: tokenInfoBump,
   };
 }
+
+export function toBN(amount: string, decimals: number) {
+  const [whole, frac = ""] = amount.split(".");
+  const paddedFrac = (frac + "0".repeat(decimals)).slice(0, decimals);
+  return new anchor.BN(whole + paddedFrac);
+}
