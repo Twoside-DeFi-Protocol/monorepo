@@ -70,7 +70,7 @@ export const DialogProvider = ({
 }: Readonly<{
   children: React.ReactNode;
 }>) => {
-  const [consentState, setConsentState] = useState({
+  const [consentState, setConsentState] = useState<ConsentDialogState>({
     isOpen: false,
     title: "",
     description: "",
