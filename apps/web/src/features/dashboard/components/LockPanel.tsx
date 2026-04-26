@@ -111,6 +111,38 @@ export default function LockPanel() {
     });
   };
 
+  const confirmTx = async (signature: string) => {
+    const { blockhash, lastValidBlockHeight } =
+      await connection.getLatestBlockhash();
+
+    while (true) {
+      const res = await connection.getSignatureStatuses([signature], {
+        searchTransactionHistory: true,
+      });
+
+      const status = res.value[0];
+
+      if (status?.err) {
+        throw new Error("Transaction failed");
+      }
+
+      if (
+        status?.confirmationStatus === "confirmed" ||
+        status?.confirmationStatus === "finalized"
+      ) {
+        return status;
+      }
+
+      const currentBlockHeight = await connection.getBlockHeight();
+
+      if (currentBlockHeight > lastValidBlockHeight) {
+        throw new Error("Transaction expired");
+      }
+
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  };
+
   const createAtaIfMissing = async ({
     ata,
     owner,
@@ -139,7 +171,7 @@ export default function LockPanel() {
         );
 
         const signature = await sendTransaction(transaction, connection);
-        await connection.confirmTransaction(signature, "confirmed");
+        await confirmTx(signature);
       },
       {
         title: `Approve Transaction ${transactionNumber}`,
