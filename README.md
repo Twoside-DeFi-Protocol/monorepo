@@ -117,6 +117,12 @@ The Twoside protocol is deployed on both **Ethereum** and **Base** networks usin
 | **Proxy**          | `0xdD28610425F663D87F2ee938E238A394388Ed401` | [View on BaseScan](https://basescan.org/address/0xdD28610425F663D87F2ee938E238A394388Ed401) |
 | **Implementation** | `0x59f35804Fc27C3731FA3f48a0bB1912FF23f0Ba7` | [View on BaseScan](https://basescan.org/address/0x59f35804Fc27C3731FA3f48a0bB1912FF23f0Ba7) |
 
+### Solana Mainnet
+
+| Contract           | Address                                      | Explorer                                                                                    |
+| ------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Anchor Program**          | `Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW` | [View on SolScan](https://explorer.solana.com/address/Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW) |
+
 > **Note:** Both networks use the same contract addresses and identical code.
 
 ---
@@ -153,7 +159,7 @@ Each folder is focused: `apps/web` is your dApp, `contracts` holds all on-chain 
 ### Website
 
 - **Framework:** Next.js + TypeScript
-- **Wallet & Blockchain:** `wagmi`, `viem`, `ethers.js`
+- **Wallet & Blockchain:** `wagmi`, `viem`, `ethers.js`, `@solana/wallet-adapter-base`, `@solana/web3.js`, `@solana/spl-token`, `@coral-xyz/anchor`
 - **Purpose:** User interface for locking/unlocking tokens, viewing positions, initiating transactions, and displaying on-chain state (balances, supply of liquid tokens)
 - **Features:** Modern React hooks via `wagmi` and `viem` for seamless blockchain interactions
 
@@ -162,6 +168,11 @@ Each folder is focused: `apps/web` is your dApp, `contracts` holds all on-chain 
 - **Language & Tooling:** Solidity — developed & tested with Foundry (Forge)
 - **Libraries:** OpenZeppelin contracts for ERC-20, access control, upgradeability patterns, and Clones
 - **Pattern:** Upgradeable proxy pattern for protocol upgrades; derivative tokens deployed via OpenZeppelin Clones for gas efficiency
+
+### Solana Program
+
+- **Language & Tooling:** Rust — developed & tested with Solana CLI & Anchor CLI.
+- **Libraries:** anchor-lang, anchor-spl, spl-associated-token-account, mpl-token-metadata, borsh, borsh-derive
 
 ---
 
@@ -286,12 +297,35 @@ Or from the root:
 pnpm --filter @twoside/web dev
 ```
 
-### 5. Build Contracts
+### 5. Build EVM Contracts
 
 ```bash
 cd contracts/ethereum  # or contracts/base
 forge build
 ```
+
+### 6. Build Solana Program
+
+#### Install Required Tools
+
+Before building, ensure the following are installed on your machine:
+
+- [Rust & Cargo](https://www.rust-lang.org/tools/install) — the Solana program is written in Rust; Cargo manages its dependencies
+- [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools) — required for interacting with the local validator and deploying programs
+- [Anchor CLI](https://www.anchor-lang.com/docs/installation) — the framework used to build and test the Solana program
+
+For a better development experience, install the **rust-analyzer** extension in VS Code (or your editor of choice). It provides inline type hints, error highlighting, and auto-complete for Rust code.
+
+> **Note:** You do not need to manually install Solana program dependencies. Once Rust and Cargo are set up, all crate dependencies declared in `contracts/solana/Cargo.toml` (such as `anchor-lang`, `anchor-spl`, `mpl-token-metadata`, and others) are fetched and compiled automatically when you run the build command below.
+
+#### Build
+
+```bash
+cd contracts/solana
+anchor build
+```
+
+This compiles the Rust program, generates the IDL, and outputs the compiled `.so` binary to `contracts/solana/target/deploy/`.
 
 ---
 
@@ -414,6 +448,131 @@ forge test
 ```
 
 Unit tests are located in [`contracts/ethereum/test`](https://github.com/Buff-Cat-DeFi-Protocol/monorepo/tree/main/contracts/ethereum/test). You can modify existing tests or add new test cases.
+
+---
+
+### Solana Program
+
+#### 1. Start Local Validator
+
+Clone the Metaplex Token Metadata program from mainnet so metadata instructions work locally:
+
+```bash
+solana-test-validator --clone metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s --url mainnet-beta --reset
+```
+
+#### 2. Configure RPC
+
+Point your Solana CLI and Anchor toolchain at the local validator.
+
+**Solana CLI:**
+
+```bash
+solana config set --url http://127.0.0.1:8899
+```
+
+**`Anchor.toml`** (in `contracts/solana`):
+
+```toml
+[provider]
+cluster = "http://127.0.0.1:8899"
+```
+
+#### 3. Create Test Token Mints
+
+Use the SPL CLI to create one or more token mints for testing. Run this once per token you need:
+
+```bash
+spl-token create-token
+```
+
+Note the mint address printed in the output — set the tokenMint variable in to this [`contracts/solana/scripts/setup.ts`](https://github.com/Buff-Cat-DeFi-Protocol/monorepo/tree/main/contracts/solana/scripts/setup.ts).
+
+#### 4. Create Associated Token Accounts
+
+```bash
+cd contracts/solana
+npx tsx scripts/createAtas.ts
+```
+
+This creates the associated token accounts (ATAs) for your test wallets so they can hold both the original and liquid-locked tokens.
+
+#### 5. Create Token Metadata
+
+```bash
+npx tsx scripts/createMetadata.ts
+```
+
+Attaches on-chain metadata (name, symbol, URI) to each test mint via the Metaplex Token Metadata program.
+
+#### 6. Deploy the Anchor Program
+
+```bash
+anchor deploy
+```
+
+Note the **Program ID** printed in the output — set the programId variable to this [`contracts/solana/scripts/setup.ts`](https://github.com/Buff-Cat-DeFi-Protocol/monorepo/tree/main/contracts/solana/scripts/setup.ts).
+
+#### 7. Initialize the Program
+
+```bash
+npx tsx scripts/initializeProgram.ts
+```
+
+Runs the one-time initialization instruction that sets up the protocol's on-chain state.
+
+#### 8. Configure the Web App
+
+Update the Program ID from step 6 in all three locations:
+
+- [`apps/web/src/features/dashboard/lib/sol/idl.json`](https://github.com/Buff-Cat-DeFi-Protocol/monorepo/blob/main/apps/web/src/features/dashboard/lib/sol/idl.json) — replace the `"address"` field at the top of the IDL.
+- [`apps/web/src/features/dashboard/lib/sol/idlType.ts`](https://github.com/Buff-Cat-DeFi-Protocol/monorepo/blob/main/apps/web/src/features/dashboard/lib/sol/idlType.ts) — update the `address` constant.
+- [`apps/web/src/lib/envVariables.ts`](https://github.com/Buff-Cat-DeFi-Protocol/monorepo/blob/main/apps/web/src/lib/envVariables.ts) — set the Solana program ID env variable.
+
+#### 9. Configure Local Tokens
+
+In [`apps/web/src/features/dashboard/services/query/tokens.ts`](https://github.com/Buff-Cat-DeFi-Protocol/monorepo/blob/main/apps/web/src/features/dashboard/services/query/tokens.ts), add (token mint addresses may differ for you — copy them from the `spl-token create-token` output in step 3):
+
+```typescript
+const localTokens: CoinGeckoTokenType[] = [
+  {
+    chainId: 1,
+    address: "<YOUR_MINT_ADDRESS>",
+    name: "Token 1",
+    symbol: "T1",
+    decimals: 9,
+    logoURI: "/token-placeholder.png",
+  },
+];
+```
+
+Add at the top of `getTokensList`:
+
+```typescript
+if (blockchain.id == "sol") return localTokens;
+```
+
+#### 10. Start the Website
+
+```bash
+cd apps/web
+pnpm run dev
+```
+
+You can now test the Solana program on your local validator through the website interface.
+
+#### 11. Run Anchor Tests (Optional)
+
+To test the program without the website:
+
+```bash
+cd contracts/solana
+anchor test
+```
+
+Unit tests are located in [`contracts/solana/tests`](https://github.com/Buff-Cat-DeFi-Protocol/monorepo/tree/main/contracts/solana/tests). You can modify existing tests or add new test cases.
+
+---
 
 ### Website Testing
 
