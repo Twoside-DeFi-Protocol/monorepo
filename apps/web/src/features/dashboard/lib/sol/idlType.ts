@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/twoside.json`.
  */
 export type Twoside = {
-  address: "2hGenUQTYhiREDswze3vCqSqKRfQAerNsNjdq8h948yh";
+  address: "Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW";
   metadata: {
     name: "twoside";
     version: "0.1.0";

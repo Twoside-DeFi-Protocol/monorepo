@@ -17,7 +17,7 @@ use mpl_token_metadata::{
     ID as metaplex_id,
 };
 
-declare_id!("2hGenUQTYhiREDswze3vCqSqKRfQAerNsNjdq8h948yh");
+declare_id!("Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW");
 
 #[program]
 pub mod twoside {
