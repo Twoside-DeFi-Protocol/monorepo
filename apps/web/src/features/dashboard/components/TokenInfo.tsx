@@ -15,7 +15,6 @@ import { useState } from "react";
 import { useTokenDerivative } from "../hooks/query/contract";
 import { selectedBlockchainAtom } from "@/store/global";
 import { useAtomValue } from "jotai";
-import { useProgram } from "../lib/sol/anchor";
 
 export default function TokenInfo({
   token,
@@ -25,7 +24,6 @@ export default function TokenInfo({
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
   const [copiedField, setCopiedField] = useState("");
   const selectedBlockchain = useAtomValue(selectedBlockchainAtom);
-  const { program } = useProgram();
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -41,7 +39,6 @@ export default function TokenInfo({
   const { data: tokenDerivativeData, isLoading } = useTokenDerivative({
     chain: selectedBlockchain,
     tokenAddressOrMint: token?.address ?? "",
-    program,
   });
 
   const InfoRow = ({

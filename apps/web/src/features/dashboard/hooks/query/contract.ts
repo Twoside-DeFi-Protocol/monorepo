@@ -1,88 +1,100 @@
 import { Blockchain } from "@/types/global";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import { ethers } from "ethers";
-import { envVariables } from "@/lib/envVariables";
-import { getTokenDerivativePDA } from "../../lib/sol/utils";
-import { PublicKey } from "@solana/web3.js";
-import { Twoside } from "../../lib/sol/idlType";
-import { Program } from "@coral-xyz/anchor";
+import {
+  cacheTokenDerivative,
+  clearCachedTokenDerivative,
+  getCachedTokenDerivative,
+} from "../../lib/cache/derivative";
+import {
+  derivativeRequestSchema,
+  derivativeResponseSchema,
+} from "../../lib/derivative";
 
-interface UseTokenBalanceParams {
+interface UseTokenDerivativeParams {
   chain: Blockchain;
   tokenAddressOrMint: string;
-  program?: Program<Twoside>;
+}
+
+type UseTokenDerivativeOptions = Omit<
+  UseQueryOptions<string, Error>,
+  "queryKey" | "queryFn"
+>;
+
+async function fetchTokenDerivative({
+  chain,
+  tokenAddressOrMint,
+}: UseTokenDerivativeParams) {
+  const params = new URLSearchParams({
+    chain: chain.id,
+    tokenAddressOrMint,
+  });
+
+  const response = await fetch(`/api/derivative?${params.toString()}`);
+  const payload = await response.json();
+
+  if (!response.ok) {
+    const errorMessage =
+      typeof payload === "object" &&
+      payload !== null &&
+      "error" in payload &&
+      typeof payload.error === "string"
+        ? payload.error
+        : "Failed to fetch derivative.";
+
+    throw new Error(errorMessage);
+  }
+
+  const parsedPayload = derivativeResponseSchema.safeParse(payload);
+  if (!parsedPayload.success) {
+    throw new Error("Invalid derivative response.");
+  }
+
+  cacheTokenDerivative(
+    chain.id,
+    tokenAddressOrMint,
+    parsedPayload.data.derivative,
+  );
+  return parsedPayload.data.derivative;
 }
 
 export function useTokenDerivative(
-  { chain, tokenAddressOrMint, program }: UseTokenBalanceParams,
-  options?: UseQueryOptions<string, Error>,
+  { chain, tokenAddressOrMint }: UseTokenDerivativeParams,
+  options?: UseTokenDerivativeOptions,
 ) {
-  return useQuery<string, Error>({
-    queryKey: ["tokenDerivative", chain, tokenAddressOrMint],
-    enabled:
-      !!chain &&
-      !!tokenAddressOrMint &&
-      (chain.id !== "solana" || !!program),
-    staleTime: 30_000,
+  const isEnabled = !!chain && !!tokenAddressOrMint;
+
+  const query = useQuery<string, Error>({
+    queryKey: ["tokenDerivative", chain.id, tokenAddressOrMint],
+    enabled: isEnabled,
+    staleTime: Infinity,
     gcTime: 5 * 60_000,
     queryFn: async () => {
-      switch (chain.id) {
-        case "eth":
-        case "base": {
-          const rpcUrl =
-            chain.name === "Ethereum"
-              ? process.env.NEXT_PUBLIC_ETH_RPC_URL!
-              : process.env.NEXT_PUBLIC_BASE_RPC_URL!;
-          const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const parsedRequest = derivativeRequestSchema.safeParse({
+        chain: chain.id,
+        tokenAddressOrMint,
+      });
 
-          const abi = [
-            "function tokenDerivatives(address token) view returns (address)",
-          ];
-
-          const twosideContract =
-            chain.id == "eth"
-              ? envVariables.twosideContract.eth
-              : envVariables.twosideContract.base;
-          if (twosideContract == "") {
-            throw new Error("Twoside contract address not set.");
-          }
-
-          const contract = new ethers.Contract(twosideContract, abi, provider);
-
-          console.log("Blockchain: ", chain.name);
-          console.log("Twoside Contract: ", twosideContract);
-          console.log("Token: ", tokenAddressOrMint);
-
-          const tokenDerivative =
-            await contract.tokenDerivatives(tokenAddressOrMint);
-          return String(tokenDerivative);
-        }
-        case "solana": {
-          if (!program) {
-            throw new Error("Solana program is not initialized.");
-          }
-
-          const { pda } = getTokenDerivativePDA(new PublicKey(tokenAddressOrMint));
-          console.log(`Token Info PDA - ${pda.toBase58()}`);
-
-          try {
-            const account = await program.account.tokenInfo.fetch(pda);
-            console.log(
-              `Token Info Account (Original Mint) - ${account.originalMint}`,
-            );
-            console.log(
-              `Token Info Account (Derivative Mint) - ${account.derivativeMint}`,
-            );
-            return account.derivativeMint.toString();
-          } catch {
-            return "";
-          }
-        }
-
-        default:
-          throw new Error(`Unsupported chain: ${chain.id}`);
+      if (!parsedRequest.success) {
+        throw new Error("Invalid derivative request.");
       }
+
+      const cachedData = getCachedTokenDerivative(chain.id, tokenAddressOrMint);
+      if (cachedData.isCached && cachedData.derivative !== null) {
+        return cachedData.derivative;
+      }
+
+      return fetchTokenDerivative({ chain, tokenAddressOrMint });
     },
     ...options,
   });
+
+  const refresh = async () => {
+    clearCachedTokenDerivative(chain.id, tokenAddressOrMint);
+    return query.refetch();
+  };
+
+  return {
+    ...query,
+    refresh,
+  };
 }

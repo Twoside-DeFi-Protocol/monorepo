@@ -8,7 +8,6 @@ import {
   ChevronRight,
   CircleCheck,
   Lock,
-  Loader2,
   ArrowRightLeft,
   Settings,
 } from "lucide-react";
@@ -36,6 +35,7 @@ import { CoinGeckoTokenType } from "@/types/global";
 import TokenInfo from "./TokenInfo";
 import { useDialog } from "@/components/Dialog";
 import { useTokenDerivative } from "../hooks/query/contract";
+import { useTokenAta } from "../hooks/query/ata";
 import { isValidFloat } from "../lib/utils";
 import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { PublicKey, Transaction } from "@solana/web3.js";
@@ -61,11 +61,18 @@ export default function LockPanel() {
   const [amount, setAmount] = useState<string>("1");
   const { writeContractAsync } = useWriteContract();
   const { showConsentDialog } = useDialog();
-  const { refetch: refetchDerivativeData } = useTokenDerivative({
+  const { refresh: refreshDerivativeData } = useTokenDerivative({
     chain: selectedBlockchain,
     tokenAddressOrMint:
       selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
-    program,
+  });
+  const { data: founderAtaData, refresh: refreshFounderAta } = useTokenAta({
+    tokenMint: selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
+    owner: founderKey.toBase58(),
+  });
+  const { data: developerAtaData, refresh: refreshDeveloperAta } = useTokenAta({
+    tokenMint: selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
+    owner: developerKey.toBase58(),
   });
 
   const lockToken = useMemo(() => {
@@ -145,17 +152,25 @@ export default function LockPanel() {
 
   const createAtaIfMissing = async ({
     ata,
+    exists,
+    refreshAta,
     owner,
     tokenMint,
     transactionNumber,
   }: {
     ata: PublicKey;
+    exists: boolean;
+    refreshAta: () => ReturnType<typeof refreshFounderAta>;
     owner: PublicKey;
     tokenMint: PublicKey;
     transactionNumber: 1 | 2;
   }) => {
-    const ataAccount = await connection.getAccountInfo(ata);
-    if (ataAccount) {
+    if (exists) {
+      return;
+    }
+
+    const latestAtaState = await refreshAta();
+    if (latestAtaState.data?.exists) {
       return;
     }
 
@@ -300,12 +315,20 @@ export default function LockPanel() {
       const { pda: tokenMetadataPDA } = getTokenMetadataPDA(tokenMint);
       const userKey = new PublicKey(currentUser.address);
       const userTokenAta = getTokenATA(tokenMint, userKey);
-      const developerTokenAta = getTokenATA(tokenMint, developerKey);
-      const founderTokenAta = getTokenATA(tokenMint, founderKey);
+      const founderAtaAddress = founderAtaData?.ata;
+      const developerAtaAddress = developerAtaData?.ata;
+      if (!founderAtaAddress || !developerAtaAddress) {
+        toast.error("Unable to fetch required ATAs, try again.");
+        return;
+      }
+      const founderTokenAta = new PublicKey(founderAtaAddress);
+      const developerTokenAta = new PublicKey(developerAtaAddress);
       const solLockAmount = toBN(amount, decimals);
 
       await createAtaIfMissing({
         ata: founderTokenAta,
+        exists: founderAtaData.exists,
+        refreshAta: refreshFounderAta,
         owner: founderKey,
         tokenMint,
         transactionNumber: 1,
@@ -313,6 +336,8 @@ export default function LockPanel() {
 
       await createAtaIfMissing({
         ata: developerTokenAta,
+        exists: developerAtaData.exists,
+        refreshAta: refreshDeveloperAta,
         owner: developerKey,
         tokenMint,
         transactionNumber: 2,
@@ -338,7 +363,9 @@ export default function LockPanel() {
             .rpc();
 
           showDerivativeWalletNotice();
-          refetchDerivativeData();
+          await refreshFounderAta();
+          await refreshDeveloperAta();
+          await refreshDerivativeData();
         },
         {
           title: "Approve Transaction 3",
@@ -385,7 +412,7 @@ export default function LockPanel() {
             },
           });
 
-          refetchDerivativeData();
+          await refreshDerivativeData();
         },
         {
           title: "Approve Transaction",

@@ -10,7 +10,6 @@ import {
   Unlock,
   ArrowRightLeft,
   Settings,
-  Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -82,7 +81,6 @@ export default function UnlockPanel() {
     chain: selectedBlockchain,
     tokenAddressOrMint:
       selectedTokens.unlockToken[selectedBlockchain.id]?.address ?? "",
-    program,
   });
 
   const { withConfirmation } = useTransactionDialog();
