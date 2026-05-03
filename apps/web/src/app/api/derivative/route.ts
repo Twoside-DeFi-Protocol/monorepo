@@ -14,6 +14,7 @@ import idl from "@/features/dashboard/lib/sol/idl.json";
 import type { Twoside } from "@/features/dashboard/lib/sol/idlType";
 import { getDerivativeCacheKey } from "@/features/dashboard/lib/cache/keys";
 import { redis } from "@/lib/redis";
+import { sleep } from "@/lib/utils";
 
 const EVM_ABI = [
   "function tokenDerivatives(address token) view returns (address)",
@@ -95,6 +96,17 @@ async function getSolanaDerivative(tokenAddressOrMint: string) {
   }
 }
 
+async function getCachedData(
+  cacheKey: string,
+): Promise<DerivativeResponse | null> {
+  try {
+    const cached = await redis.get(cacheKey);
+    const parsed = derivativeResponseSchema.safeParse(cached);
+    if (parsed.success) return parsed.data;
+  } catch {}
+  return null;
+}
+
 export async function GET(
   request: NextRequest,
 ): Promise<NextResponse<DerivativeResponse | DerivativeErrorResponse>> {
@@ -111,15 +123,27 @@ export async function GET(
 
   const cacheKey = getDerivativeCacheKey(chain, tokenAddressOrMint);
 
-  try {
-    const cached = await redis.get(cacheKey);
-    const parsed = derivativeResponseSchema.safeParse(cached);
-    if (parsed.success) {
-      return NextResponse.json<DerivativeResponse>(parsed.data, {
-        status: 200,
-      });
+  const cached = await getCachedData(cacheKey);
+  if (cached)
+    return NextResponse.json<DerivativeResponse>(cached, { status: 200 });
+
+  // 2. Try lock
+  const lockKey = `lock:${cacheKey}`;
+  const lock = await redis.set(lockKey, "1", {
+    nx: true,
+    ex: 10,
+  });
+
+  if (!lock) {
+    // another request is fetching
+    await sleep(100);
+    const cached = await getCachedData(cacheKey);
+    if (cached) {
+      return NextResponse.json<DerivativeResponse>(cached, { status: 200 });
+    } else {
+      return jsonError("Please retry shortly", 429);
     }
-  } catch {}
+  }
 
   try {
     const derivative =
@@ -132,16 +156,15 @@ export async function GET(
     };
 
     await redis.set(cacheKey, response, {
-      ex: 3600,
+      ex: 3600 + Math.floor(Math.random() * 60),
     });
 
     return NextResponse.json<DerivativeResponse>(response, {
       status: 200,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch derivative.";
-
-    return jsonError(message, 500);
+    return jsonError("Failed to fetch derivative.", 500);
+  } finally {
+    if (lock) await redis.del(lockKey);
   }
 }

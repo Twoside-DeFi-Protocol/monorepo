@@ -9,6 +9,7 @@ import {
 } from "@/features/dashboard/lib/ata";
 import { getAtaCacheKey } from "@/features/dashboard/lib/cache/keys";
 import { redis } from "@/lib/redis";
+import { sleep } from "@/lib/utils";
 
 function getSolanaRpcUrl() {
   const rpcUrl =
@@ -30,6 +31,15 @@ function jsonError(message: string, status: number) {
   );
 }
 
+async function getCachedData(cacheKey: string): Promise<AtaResponse | null> {
+  try {
+    const cached = await redis.get(cacheKey);
+    const parsed = ataResponseSchema.safeParse(cached);
+    if (parsed.success) return parsed.data;
+  } catch {}
+  return null;
+}
+
 export async function GET(
   request: NextRequest,
 ): Promise<NextResponse<AtaResponse | AtaErrorResponse>> {
@@ -46,13 +56,26 @@ export async function GET(
 
   const cacheKey = getAtaCacheKey(tokenMint, owner);
 
-  try {
-    const cached = await redis.get(cacheKey);
-    const parsed = ataResponseSchema.safeParse(cached);
-    if (parsed.success) {
-      return NextResponse.json<AtaResponse>(parsed.data, { status: 200 });
+  const cached = await getCachedData(cacheKey);
+  if (cached) return NextResponse.json<AtaResponse>(cached, { status: 200 });
+
+  // 2. Try lock
+  const lockKey = `lock:${cacheKey}`;
+  const lock = await redis.set(lockKey, "1", {
+    nx: true,
+    ex: 10,
+  });
+
+  if (!lock) {
+    // another request is fetching
+    await sleep(100);
+    const cached = await getCachedData(cacheKey);
+    if (cached) {
+      return NextResponse.json<AtaResponse>(cached, { status: 200 });
+    } else {
+      return jsonError("Please retry shortly", 429);
     }
-  } catch {}
+  }
 
   try {
     const mintPublicKey = new PublicKey(tokenMint);
@@ -76,9 +99,8 @@ export async function GET(
       status: 200,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to fetch ATA.";
-
-    return jsonError(message, 500);
+    return jsonError("Failed to fetch ATA.", 500);
+  } finally {
+    if (lock) await redis.del(lockKey);
   }
 }
