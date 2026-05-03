@@ -23,7 +23,15 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Access-Control-Allow-Origin",
-            value: "https://yourdomain.com",
+            value: "https://monorepo-web-psi-three.vercel.app",
+          },
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "https://www.twoside.finance",
+          },
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "https://www.twoside.fi",
           },
           {
             key: "Access-Control-Allow-Methods",
