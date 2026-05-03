@@ -5,12 +5,15 @@ import { Program, type Provider } from "@coral-xyz/anchor";
 import { envVariables } from "@/lib/envVariables";
 import {
   derivativeRequestSchema,
+  derivativeResponseSchema,
   type DerivativeErrorResponse,
   type DerivativeResponse,
 } from "@/features/dashboard/lib/derivative";
 import { getTokenDerivativePDA } from "@/features/dashboard/lib/sol/utils";
 import idl from "@/features/dashboard/lib/sol/idl.json";
 import type { Twoside } from "@/features/dashboard/lib/sol/idlType";
+import { getDerivativeCacheKey } from "@/features/dashboard/lib/cache/keys";
+import { redis } from "@/lib/redis";
 
 const EVM_ABI = [
   "function tokenDerivatives(address token) view returns (address)",
@@ -21,9 +24,6 @@ function jsonError(message: string, status: number) {
     { error: message },
     {
       status,
-      headers: {
-        "Cache-Control": "no-store",
-      },
     },
   );
 }
@@ -109,21 +109,35 @@ export async function GET(
 
   const { chain, tokenAddressOrMint } = parsedRequest.data;
 
+  const cacheKey = getDerivativeCacheKey(chain, tokenAddressOrMint);
+
+  try {
+    const cached = await redis.get(cacheKey);
+    const parsed = derivativeResponseSchema.safeParse(cached);
+    if (parsed.success) {
+      return NextResponse.json<DerivativeResponse>(parsed.data, {
+        status: 200,
+      });
+    }
+  } catch {}
+
   try {
     const derivative =
       chain === "solana"
         ? await getSolanaDerivative(tokenAddressOrMint)
         : await getEvmDerivative(chain, tokenAddressOrMint);
 
-    return NextResponse.json<DerivativeResponse>(
-      { data: derivative },
-      {
-        status: 200,
-        headers: {
-          "Cache-Control": "no-store",
-        },
-      },
-    );
+    const response: DerivativeResponse = {
+      data: derivative,
+    };
+
+    await redis.set(cacheKey, response, {
+      ex: 3600,
+    });
+
+    return NextResponse.json<DerivativeResponse>(response, {
+      status: 200,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to fetch derivative.";

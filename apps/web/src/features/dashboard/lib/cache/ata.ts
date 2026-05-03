@@ -1,14 +1,9 @@
-import { getCacheKey } from "./keys";
+import { getAtaCacheKey, getCacheKey } from "./keys";
 
 type CachedAtaValue = {
   ata: string;
   exists: boolean;
 };
-
-function getAtaCacheKey(tokenMint: string, owner: string) {
-  const cachePrefix = getCacheKey("token_ata", "solana");
-  return `${cachePrefix}_${tokenMint.toLowerCase()}_${owner.toLowerCase()}`;
-}
 
 export function cacheTokenAta(
   tokenMint: string,

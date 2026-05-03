@@ -1,13 +1,5 @@
 import { SupportedBlockchain } from "@/types/global";
-import { getCacheKey } from "./keys";
-
-function getDerivativeCacheKey(
-  blockchain: SupportedBlockchain,
-  tokenAddressOrMint: string,
-) {
-  const cachePrefix = getCacheKey("token_derivative", blockchain);
-  return `${cachePrefix}_${tokenAddressOrMint.toLowerCase()}`;
-}
+import { getCacheKey, getDerivativeCacheKey } from "./keys";
 
 export function cacheTokenDerivative(
   blockchain: SupportedBlockchain,

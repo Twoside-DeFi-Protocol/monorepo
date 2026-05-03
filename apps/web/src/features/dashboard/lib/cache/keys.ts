@@ -6,12 +6,25 @@ export function getCacheKey(
   cacheKey: CacheKey,
   blockchainParam: SupportedBlockchain,
 ) {
-  return `buff_cat_${blockchainParam}_${cacheKey}`;
+  return `twoside:${blockchainParam}:${cacheKey}`;
 }
 
 export function getCacheTimestampKey(
   cacheKey: CacheKey,
   blockchainParam: SupportedBlockchain,
 ) {
-  return `buff_cat_${blockchainParam}_${cacheKey}_timestamp`;
+  return `twoside:${blockchainParam}:${cacheKey}:timestamp`;
+}
+
+export function getAtaCacheKey(tokenMint: string, owner: string) {
+  const cachePrefix = getCacheKey("token_ata", "solana");
+  return `${cachePrefix}:${tokenMint.toLowerCase()}:${owner.toLowerCase()}`;
+}
+
+export function getDerivativeCacheKey(
+  blockchain: SupportedBlockchain,
+  tokenAddressOrMint: string,
+) {
+  const cachePrefix = getCacheKey("token_derivative", blockchain);
+  return `${cachePrefix}:${tokenAddressOrMint.toLowerCase()}`;
 }
