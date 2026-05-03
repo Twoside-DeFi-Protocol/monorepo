@@ -32,29 +32,18 @@ async function fetchTokenDerivative({
   const response = await fetch(`/api/derivative?${params.toString()}`);
   const payload = await response.json();
 
-  if (!response.ok) {
-    const errorMessage =
-      typeof payload === "object" &&
-      payload !== null &&
-      "error" in payload &&
-      typeof payload.error === "string"
-        ? payload.error
-        : "Failed to fetch derivative.";
+  if (response.status == 200) {
+    const parsedPayload = derivativeResponseSchema.safeParse(payload);
+    if (!parsedPayload.success) {
+      throw new Error("Invalid derivative response.");
+    }
 
-    throw new Error(errorMessage);
+    cacheTokenDerivative(chain.id, tokenAddressOrMint, parsedPayload.data.data);
+
+    return parsedPayload.data.data;
+  } else {
+    throw new Error(payload.error);
   }
-
-  const parsedPayload = derivativeResponseSchema.safeParse(payload);
-  if (!parsedPayload.success) {
-    throw new Error("Invalid derivative response.");
-  }
-
-  cacheTokenDerivative(
-    chain.id,
-    tokenAddressOrMint,
-    parsedPayload.data.derivative,
-  );
-  return parsedPayload.data.derivative;
 }
 
 export function useTokenDerivative(

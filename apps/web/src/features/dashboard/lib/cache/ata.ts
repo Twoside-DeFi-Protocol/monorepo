@@ -10,7 +10,11 @@ function getAtaCacheKey(tokenMint: string, owner: string) {
   return `${cachePrefix}_${tokenMint.toLowerCase()}_${owner.toLowerCase()}`;
 }
 
-export function cacheTokenAta(tokenMint: string, owner: string, value: CachedAtaValue) {
+export function cacheTokenAta(
+  tokenMint: string,
+  owner: string,
+  value: CachedAtaValue,
+) {
   try {
     const cacheKey = getAtaCacheKey(tokenMint, owner);
     localStorage.setItem(cacheKey, JSON.stringify(value));

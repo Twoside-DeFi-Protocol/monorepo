@@ -37,7 +37,7 @@ export const derivativeRequestSchema = z
 export type DerivativeRequest = z.infer<typeof derivativeRequestSchema>;
 
 export const derivativeResponseSchema = z.object({
-  derivative: z.string(),
+  data: z.string(),
 });
 
 export type DerivativeResponse = z.infer<typeof derivativeResponseSchema>;

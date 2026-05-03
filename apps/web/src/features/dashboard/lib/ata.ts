@@ -31,8 +31,10 @@ export const ataRequestSchema = z
 export type AtaRequest = z.infer<typeof ataRequestSchema>;
 
 export const ataResponseSchema = z.object({
-  ata: z.string(),
-  exists: z.boolean(),
+  data: z.object({
+    ata: z.string(),
+    exists: z.boolean(),
+  }),
 });
 
 export type AtaResponse = z.infer<typeof ataResponseSchema>;

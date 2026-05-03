@@ -1,10 +1,6 @@
 import { SupportedBlockchain } from "@/types/global";
 import { getCacheKey } from "./keys";
 
-type CachedDerivativeValue = {
-  derivative: string;
-};
-
 function getDerivativeCacheKey(
   blockchain: SupportedBlockchain,
   tokenAddressOrMint: string,
@@ -20,7 +16,7 @@ export function cacheTokenDerivative(
 ) {
   try {
     const cacheKey = getDerivativeCacheKey(blockchain, tokenAddressOrMint);
-    const payload: CachedDerivativeValue = { derivative };
+    const payload = derivative;
     localStorage.setItem(cacheKey, JSON.stringify(payload));
   } catch (error) {
     console.error(error);
@@ -41,14 +37,14 @@ export function getCachedTokenDerivative(
       return { isCached: false, derivative: null };
     }
 
-    const parsedValue = JSON.parse(cachedValue) as CachedDerivativeValue;
-    if (typeof parsedValue.derivative !== "string") {
+    const parsedValue = JSON.parse(cachedValue) as string;
+    if (typeof parsedValue !== "string") {
       return { isCached: false, derivative: null };
     }
 
     return {
       isCached: true,
-      derivative: parsedValue.derivative,
+      derivative: parsedValue,
     };
   } catch (error) {
     console.error(error);

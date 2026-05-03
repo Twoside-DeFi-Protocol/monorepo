@@ -29,25 +29,18 @@ async function fetchTokenAta({ tokenMint, owner }: UseTokenAtaParams) {
   const response = await fetch(`/api/ata?${params.toString()}`);
   const payload = await response.json();
 
-  if (!response.ok) {
-    const errorMessage =
-      typeof payload === "object" &&
-      payload !== null &&
-      "error" in payload &&
-      typeof payload.error === "string"
-        ? payload.error
-        : "Failed to fetch ATA.";
+  if (response.status == 200) {
+    const parsedPayload = ataResponseSchema.safeParse(payload);
+    if (!parsedPayload.success) {
+      throw new Error("Invalid ATA response.");
+    }
 
-    throw new Error(errorMessage);
+    cacheTokenAta(tokenMint, owner, parsedPayload.data.data);
+
+    return parsedPayload.data.data;
+  } else {
+    throw new Error(payload.error);
   }
-
-  const parsedPayload = ataResponseSchema.safeParse(payload);
-  if (!parsedPayload.success) {
-    throw new Error("Invalid ATA response.");
-  }
-
-  cacheTokenAta(tokenMint, owner, parsedPayload.data);
-  return parsedPayload.data;
 }
 
 export function useTokenAta(
@@ -73,10 +66,11 @@ export function useTokenAta(
 
       const cachedData = getCachedTokenAta(tokenMint, owner);
       if (cachedData.isCached && cachedData.value !== null) {
-        return cachedData.value;
+        return { data: cachedData.value };
       }
 
-      return fetchTokenAta({ tokenMint, owner });
+      const result = await fetchTokenAta({ tokenMint, owner });
+      return { data: result };
     },
     ...options,
   });

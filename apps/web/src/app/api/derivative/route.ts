@@ -116,8 +116,9 @@ export async function GET(
         : await getEvmDerivative(chain, tokenAddressOrMint);
 
     return NextResponse.json<DerivativeResponse>(
-      { derivative },
+      { data: derivative },
       {
+        status: 200,
         headers: {
           "Cache-Control": "no-store",
         },

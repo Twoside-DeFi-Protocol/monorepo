@@ -53,10 +53,13 @@ export async function GET(
 
     return NextResponse.json<AtaResponse>(
       {
-        ata: ata.toBase58(),
-        exists: !!ataAccount,
+        data: {
+          ata: ata.toBase58(),
+          exists: !!ataAccount,
+        },
       },
       {
+        status: 200,
         headers: {
           "Cache-Control": "no-store",
         },

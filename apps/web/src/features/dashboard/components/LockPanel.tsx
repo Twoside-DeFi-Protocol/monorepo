@@ -170,7 +170,7 @@ export default function LockPanel() {
     }
 
     const latestAtaState = await refreshAta();
-    if (latestAtaState.data?.exists) {
+    if (latestAtaState.data?.data.exists) {
       return;
     }
 
@@ -315,8 +315,8 @@ export default function LockPanel() {
       const { pda: tokenMetadataPDA } = getTokenMetadataPDA(tokenMint);
       const userKey = new PublicKey(currentUser.address);
       const userTokenAta = getTokenATA(tokenMint, userKey);
-      const founderAtaAddress = founderAtaData?.ata;
-      const developerAtaAddress = developerAtaData?.ata;
+      const founderAtaAddress = founderAtaData?.data.ata;
+      const developerAtaAddress = developerAtaData?.data.ata;
       if (!founderAtaAddress || !developerAtaAddress) {
         toast.error("Unable to fetch required ATAs, try again.");
         return;
@@ -327,7 +327,7 @@ export default function LockPanel() {
 
       await createAtaIfMissing({
         ata: founderTokenAta,
-        exists: founderAtaData.exists,
+        exists: founderAtaData.data.exists,
         refreshAta: refreshFounderAta,
         owner: founderKey,
         tokenMint,
@@ -336,7 +336,7 @@ export default function LockPanel() {
 
       await createAtaIfMissing({
         ata: developerTokenAta,
-        exists: developerAtaData.exists,
+        exists: developerAtaData.data.exists,
         refreshAta: refreshDeveloperAta,
         owner: developerKey,
         tokenMint,
