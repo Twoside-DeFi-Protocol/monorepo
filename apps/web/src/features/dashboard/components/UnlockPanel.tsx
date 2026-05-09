@@ -34,12 +34,13 @@ import twosideAbi from "../lib/evm/twoside.json";
 import { useTokenDerivative } from "../hooks/query/contract";
 import { CoinGeckoTokenType } from "@/types/global";
 import TokenInfo from "./TokenInfo";
-import { isValidFloat } from "../lib/utils";
+import { isValidFloat } from "@/lib/utils";
 import { PublicKey } from "@solana/web3.js";
 import { developerKey, founderKey, getTokenATA, toBN } from "../lib/sol/utils";
 import { BN } from "@anchor-lang/core";
 import { useProgram } from "../lib/sol/anchor";
 import { useDialog } from "@/components/Dialog";
+import FullScreenLoader from "@/components/FullScreenLoader";
 
 export default function UnlockPanel() {
   const { program } = useProgram();
@@ -50,6 +51,8 @@ export default function UnlockPanel() {
   const [amount, setAmount] = useState<string>("1");
   const { writeContractAsync } = useWriteContract();
   const { showConsentDialog } = useDialog();
+  const [tokenDerivativeLoading, setTokenDerivativeLoading] =
+    useState<boolean>(false);
 
   const unlockToken = useMemo(() => {
     return selectedTokens.unlockToken[selectedBlockchain.id];
@@ -452,7 +455,10 @@ export default function UnlockPanel() {
         </CollapsibleContent>
       </Collapsible>
       {selectedTokens.unlockToken[selectedBlockchain.id] && (
-        <TokenInfo token={selectedTokens.unlockToken[selectedBlockchain.id]} />
+        <TokenInfo
+          token={selectedTokens.unlockToken[selectedBlockchain.id]}
+          setTokenDerivativeLoading={setTokenDerivativeLoading}
+        />
       )}
       <Card
         className="w-full md:w-112 rounded-2xl text-custom-primary-text mt-2 bg-transparent shadow-none
@@ -495,6 +501,8 @@ export default function UnlockPanel() {
       >
         <Unlock /> Unlock Tokens
       </ThemedButton>
+
+      <FullScreenLoader show={tokenDerivativeLoading} />
     </div>
   );
 }

@@ -8,48 +8,18 @@ import {
   derivativeResponseSchema,
   type DerivativeErrorResponse,
   type DerivativeResponse,
-} from "@/features/dashboard/lib/derivative";
+} from "@/types/derivative";
 import { getTokenDerivativePDA } from "@/features/dashboard/lib/sol/utils";
 import idl from "@/features/dashboard/lib/sol/idl.json";
 import type { Twoside } from "@/features/dashboard/lib/sol/idlType";
 import { getDerivativeCacheKey } from "@/features/dashboard/lib/cache/keys";
 import { redis } from "@/lib/redis";
-import { sleep } from "@/lib/utils";
-
-const EVM_ABI = [
-  "function tokenDerivatives(address token) view returns (address)",
-] as const;
-
-function jsonError(message: string, status: number) {
-  return NextResponse.json<DerivativeErrorResponse>(
-    { error: message },
-    {
-      status,
-    },
-  );
-}
-
-function getEvmRpcUrl(chain: "eth" | "base") {
-  const rpcUrl =
-    chain === "eth" ? process.env.ETH_RPC_URL : process.env.BASE_RPC_URL;
-
-  if (!rpcUrl) {
-    throw new Error(`RPC URL not configured for ${chain}.`);
-  }
-
-  return rpcUrl;
-}
-
-function getSolanaRpcUrl() {
-  const rpcUrl =
-    process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
-
-  if (!rpcUrl) {
-    throw new Error("RPC URL not configured for solana.");
-  }
-
-  return rpcUrl;
-}
+import { getEvmRpcUrl, getSolanaRpcUrl, jsonError, sleep } from "@/lib/utils";
+import {
+  ETH_ADDRESS_NULL_VALUE,
+  SOL_ADDRESS_NULL_VALUE,
+} from "@/lib/constants";
+import twosideAbi from "../../../features/dashboard/lib/evm/twoside.json";
 
 async function getEvmDerivative(
   chain: "eth" | "base",
@@ -68,7 +38,11 @@ async function getEvmDerivative(
   }
 
   const provider = new ethers.JsonRpcProvider(getEvmRpcUrl(chain));
-  const contract = new ethers.Contract(twosideContract, EVM_ABI, provider);
+  const contract = new ethers.Contract(
+    twosideContract,
+    twosideAbi.abi,
+    provider,
+  );
   const derivative = await contract.tokenDerivatives(tokenAddressOrMint);
 
   return String(derivative);
@@ -150,6 +124,13 @@ export async function GET(
       chain === "solana"
         ? await getSolanaDerivative(tokenAddressOrMint)
         : await getEvmDerivative(chain, tokenAddressOrMint);
+
+    if (
+      derivative == ETH_ADDRESS_NULL_VALUE ||
+      derivative == SOL_ADDRESS_NULL_VALUE
+    ) {
+      return jsonError("Derivative not initialized yet.", 500);
+    }
 
     const response: DerivativeResponse = {
       data: derivative,

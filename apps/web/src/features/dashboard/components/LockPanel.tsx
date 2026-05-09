@@ -36,7 +36,7 @@ import TokenInfo from "./TokenInfo";
 import { useDialog } from "@/components/Dialog";
 import { useTokenDerivative } from "../hooks/query/contract";
 import { useTokenAta } from "../hooks/query/ata";
-import { isValidFloat } from "../lib/utils";
+import { isValidFloat } from "@/lib/utils";
 import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import {
@@ -49,6 +49,7 @@ import {
 import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
 import { useProgram } from "../lib/sol/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import FullScreenLoader from "@/components/FullScreenLoader";
 
 export default function LockPanel() {
   const { program } = useProgram();
@@ -61,16 +62,29 @@ export default function LockPanel() {
   const [amount, setAmount] = useState<string>("1");
   const { writeContractAsync } = useWriteContract();
   const { showConsentDialog } = useDialog();
+  const [tokenDerivativeLoading, setTokenDerivativeLoading] =
+    useState<boolean>(false);
+
   const { refresh: refreshDerivativeData } = useTokenDerivative({
     chain: selectedBlockchain,
     tokenAddressOrMint:
       selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
   });
-  const { data: founderAtaData, refresh: refreshFounderAta } = useTokenAta({
+
+  const {
+    data: founderAtaData,
+    refresh: refreshFounderAta,
+    isLoading: founderAtaLoading,
+  } = useTokenAta({
     tokenMint: selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
     owner: founderKey.toBase58(),
   });
-  const { data: developerAtaData, refresh: refreshDeveloperAta } = useTokenAta({
+
+  const {
+    data: developerAtaData,
+    refresh: refreshDeveloperAta,
+    isLoading: developerAtaLoading,
+  } = useTokenAta({
     tokenMint: selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
     owner: developerKey.toBase58(),
   });
@@ -592,7 +606,10 @@ export default function LockPanel() {
         </CollapsibleContent>
       </Collapsible>
       {selectedTokens.lockToken[selectedBlockchain.id] && (
-        <TokenInfo token={selectedTokens.lockToken[selectedBlockchain.id]} />
+        <TokenInfo
+          token={selectedTokens.lockToken[selectedBlockchain.id]}
+          setTokenDerivativeLoading={setTokenDerivativeLoading}
+        />
       )}
       <Card
         className="w-full md:w-112 rounded-2xl text-custom-primary-text mt-2 bg-transparent shadow-none
@@ -644,6 +661,12 @@ export default function LockPanel() {
           if it hasn't been locked before on twoside even once on the specific
           chain you are on.`}
       </div>
+
+      <FullScreenLoader
+        show={
+          tokenDerivativeLoading || founderAtaLoading || developerAtaLoading
+        }
+      />
     </div>
   );
 }

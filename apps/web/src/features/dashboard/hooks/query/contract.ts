@@ -1,50 +1,14 @@
-import { Blockchain } from "@/types/global";
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
-  cacheTokenDerivative,
   clearCachedTokenDerivative,
   getCachedTokenDerivative,
 } from "../../lib/cache/derivative";
 import {
-  derivativeRequestSchema,
-  derivativeResponseSchema,
-} from "../../lib/derivative";
-
-interface UseTokenDerivativeParams {
-  chain: Blockchain;
-  tokenAddressOrMint: string;
-}
-
-type UseTokenDerivativeOptions = Omit<
-  UseQueryOptions<string, Error>,
-  "queryKey" | "queryFn"
->;
-
-async function fetchTokenDerivative({
-  chain,
-  tokenAddressOrMint,
-}: UseTokenDerivativeParams) {
-  const params = new URLSearchParams({
-    chain: chain.id,
-    tokenAddressOrMint,
-  });
-
-  const response = await fetch(`/api/derivative?${params.toString()}`);
-  const payload = await response.json();
-
-  if (response.status == 200) {
-    const parsedPayload = derivativeResponseSchema.safeParse(payload);
-    if (!parsedPayload.success) {
-      throw new Error("Invalid derivative response.");
-    }
-
-    cacheTokenDerivative(chain.id, tokenAddressOrMint, parsedPayload.data.data);
-
-    return parsedPayload.data.data;
-  } else {
-    throw new Error(payload.error);
-  }
-}
+  UseTokenDerivativeOptions,
+  UseTokenDerivativeParams,
+} from "@/types/api";
+import { derivativeRequestSchema } from "@/types/derivative";
+import { fetchTokenDerivative } from "../../services/query/contract";
 
 export function useTokenDerivative(
   { chain, tokenAddressOrMint }: UseTokenDerivativeParams,

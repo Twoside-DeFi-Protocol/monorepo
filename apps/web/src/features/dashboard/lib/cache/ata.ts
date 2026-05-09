@@ -1,9 +1,5 @@
-import { getAtaCacheKey, getCacheKey } from "./keys";
-
-type CachedAtaValue = {
-  ata: string;
-  exists: boolean;
-};
+import { CachedAtaValue } from "@/types/cache";
+import { getAtaCacheKey } from "./keys";
 
 export function cacheTokenAta(
   tokenMint: string,

@@ -11,15 +11,17 @@ import {
   Copy,
   BadgeDollarSign,
 } from "lucide-react";
-import { useState } from "react";
+import { Dispatch, useEffect, useState } from "react";
 import { useTokenDerivative } from "../hooks/query/contract";
 import { selectedBlockchainAtom } from "@/store/global";
-import { useAtomValue } from "jotai";
+import { SetStateAction, useAtomValue } from "jotai";
 
 export default function TokenInfo({
   token,
+  setTokenDerivativeLoading,
 }: {
   token: CoinGeckoTokenType | null;
+  setTokenDerivativeLoading: Dispatch<SetStateAction<boolean>>;
 }) {
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
   const [copiedField, setCopiedField] = useState("");
@@ -40,6 +42,10 @@ export default function TokenInfo({
     chain: selectedBlockchain,
     tokenAddressOrMint: token?.address ?? "",
   });
+
+  useEffect(() => {
+    setTokenDerivativeLoading(isLoading);
+  }, [isLoading]);
 
   const InfoRow = ({
     label,

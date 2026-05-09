@@ -6,30 +6,10 @@ import {
   ataResponseSchema,
   type AtaErrorResponse,
   type AtaResponse,
-} from "@/features/dashboard/lib/ata";
+} from "@/types/ata";
 import { getAtaCacheKey } from "@/features/dashboard/lib/cache/keys";
 import { redis } from "@/lib/redis";
-import { sleep } from "@/lib/utils";
-
-function getSolanaRpcUrl() {
-  const rpcUrl =
-    process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
-
-  if (!rpcUrl) {
-    throw new Error("RPC URL not configured for solana.");
-  }
-
-  return rpcUrl;
-}
-
-function jsonError(message: string, status: number) {
-  return NextResponse.json<AtaErrorResponse>(
-    { error: message },
-    {
-      status,
-    },
-  );
-}
+import { getSolanaRpcUrl, jsonError, sleep } from "@/lib/utils";
 
 async function getCachedData(cacheKey: string): Promise<AtaResponse | null> {
   try {

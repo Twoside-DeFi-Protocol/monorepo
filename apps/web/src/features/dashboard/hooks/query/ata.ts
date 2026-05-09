@@ -1,47 +1,8 @@
-import { useQuery, UseQueryOptions } from "@tanstack/react-query";
-import {
-  ataRequestSchema,
-  ataResponseSchema,
-  type AtaResponse,
-} from "../../lib/ata";
-import {
-  cacheTokenAta,
-  clearCachedTokenAta,
-  getCachedTokenAta,
-} from "../../lib/cache/ata";
-
-type UseTokenAtaParams = {
-  tokenMint: string;
-  owner: string;
-};
-
-type UseTokenAtaOptions = Omit<
-  UseQueryOptions<AtaResponse, Error>,
-  "queryKey" | "queryFn"
->;
-
-async function fetchTokenAta({ tokenMint, owner }: UseTokenAtaParams) {
-  const params = new URLSearchParams({
-    tokenMint,
-    owner,
-  });
-
-  const response = await fetch(`/api/ata?${params.toString()}`);
-  const payload = await response.json();
-
-  if (response.status == 200) {
-    const parsedPayload = ataResponseSchema.safeParse(payload);
-    if (!parsedPayload.success) {
-      throw new Error("Invalid ATA response.");
-    }
-
-    cacheTokenAta(tokenMint, owner, parsedPayload.data.data);
-
-    return parsedPayload.data.data;
-  } else {
-    throw new Error(payload.error);
-  }
-}
+import { useQuery } from "@tanstack/react-query";
+import { UseTokenAtaOptions, UseTokenAtaParams } from "@/types/api";
+import { ataRequestSchema, AtaResponse } from "@/types/ata";
+import { clearCachedTokenAta, getCachedTokenAta } from "../../lib/cache/ata";
+import { fetchTokenAta } from "../../services/query/ata";
 
 export function useTokenAta(
   { tokenMint, owner }: UseTokenAtaParams,

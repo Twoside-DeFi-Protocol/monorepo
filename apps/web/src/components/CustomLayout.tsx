@@ -40,10 +40,17 @@ export function CustomLayout({ children }: { children: ReactNode }) {
         <SolanaProvider>
           <WagmiProvider config={wagmiConfig} reconnectOnMount={false}>
             <QueryClientProvider client={queryClient}>
-              <Header />
-              {children}
-              <Footer />
-              <Toaster position="bottom-right" richColors />
+              <div
+                style={{
+                  backgroundImage: "radial-gradient(#ddd 1px, transparent 1px)",
+                  backgroundSize: "16px 16px",
+                }}
+              >
+                <Header />
+                {children}
+                <Footer />
+                <Toaster position="bottom-right" richColors />
+              </div>
             </QueryClientProvider>
           </WagmiProvider>
         </SolanaProvider>
