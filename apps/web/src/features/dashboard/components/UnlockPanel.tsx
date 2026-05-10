@@ -41,6 +41,8 @@ import { BN } from "@anchor-lang/core";
 import { useProgram } from "../lib/sol/anchor";
 import { useDialog } from "@/components/Dialog";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { confirmTx } from "../lib/utils";
 
 export default function UnlockPanel() {
   const { program } = useProgram();
@@ -51,6 +53,8 @@ export default function UnlockPanel() {
   const [amount, setAmount] = useState<string>("1");
   const { writeContractAsync } = useWriteContract();
   const { showConsentDialog } = useDialog();
+  const { connection } = useConnection();
+  const { sendTransaction } = useWallet();
   const [tokenDerivativeLoading, setTokenDerivativeLoading] =
     useState<boolean>(false);
 
@@ -221,7 +225,8 @@ export default function UnlockPanel() {
             toast.error("Program not defined.");
             return;
           }
-          const tx = await program.methods
+
+          const txn = await program.methods
             .unlock(solUnlockAmount)
             .accounts({
               tokenMint: tokenMint,
@@ -230,7 +235,20 @@ export default function UnlockPanel() {
               developerAta: developerTokenAta,
               founderAta: founderTokenAta,
             })
-            .rpc();
+            .transaction();
+
+          try {
+            const signature = await sendTransaction(txn, connection, {
+              preflightCommitment: "confirmed",
+            });
+
+            console.log("signature", signature);
+
+            await confirmTx(connection, signature);
+          } catch (e: any) {
+            console.dir(e, { depth: 10 });
+            throw e;
+          }
         },
         {
           title: "Approve Transaction",

@@ -50,6 +50,7 @@ import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-me
 import { useProgram } from "../lib/sol/anchor";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import { confirmTx } from "../lib/utils";
 
 export default function LockPanel() {
   const { program } = useProgram();
@@ -132,38 +133,6 @@ export default function LockPanel() {
     });
   };
 
-  const confirmTx = async (signature: string) => {
-    const { blockhash, lastValidBlockHeight } =
-      await connection.getLatestBlockhash();
-
-    while (true) {
-      const res = await connection.getSignatureStatuses([signature], {
-        searchTransactionHistory: true,
-      });
-
-      const status = res.value[0];
-
-      if (status?.err) {
-        throw new Error("Transaction failed");
-      }
-
-      if (
-        status?.confirmationStatus === "confirmed" ||
-        status?.confirmationStatus === "finalized"
-      ) {
-        return status;
-      }
-
-      const currentBlockHeight = await connection.getBlockHeight();
-
-      if (currentBlockHeight > lastValidBlockHeight) {
-        throw new Error("Transaction expired");
-      }
-
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-  };
-
   const createAtaIfMissing = async ({
     ata,
     exists,
@@ -190,7 +159,7 @@ export default function LockPanel() {
 
     await withConfirmation(
       async () => {
-        const transaction = new Transaction().add(
+        const txn = new Transaction().add(
           createAssociatedTokenAccountInstruction(
             new PublicKey(currentUser.address),
             ata,
@@ -199,8 +168,18 @@ export default function LockPanel() {
           ),
         );
 
-        const signature = await sendTransaction(transaction, connection);
-        await confirmTx(signature);
+        try {
+          const sig = await sendTransaction(txn, connection, {
+            preflightCommitment: "confirmed",
+          });
+
+          console.log("sig", sig);
+
+          await confirmTx(connection, sig);
+        } catch (e: any) {
+          console.dir(e, { depth: 10 });
+          throw e;
+        }
       },
       {
         title: `Approve Transaction ${transactionNumber}`,
@@ -363,7 +342,8 @@ export default function LockPanel() {
             toast.error("Program not defined.");
             return;
           }
-          const tx = await program.methods
+
+          const txn = await program.methods
             .lock(solLockAmount)
             .accounts({
               tokenMint: tokenMint,
@@ -374,7 +354,20 @@ export default function LockPanel() {
               founderAta: founderTokenAta,
               mplTokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
             })
-            .rpc();
+            .transaction();
+
+          try {
+            const signature = await sendTransaction(txn, connection, {
+              preflightCommitment: "confirmed",
+            });
+
+            console.log("signature", signature);
+
+            await confirmTx(connection, signature);
+          } catch (e: any) {
+            console.dir(e, { depth: 10 });
+            throw e;
+          }
 
           showDerivativeWalletNotice();
           await refreshFounderAta();

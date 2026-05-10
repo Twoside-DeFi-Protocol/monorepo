@@ -11,9 +11,18 @@ export const SolanaProvider = ({ children }: { children: React.ReactNode }) => {
   const network = WalletAdapterNetwork.Mainnet;
   const endpoint =
     process.env.NEXT_PUBLIC_SOL_RPC_URL || clusterApiUrl(network);
+  const wsEndpoint =
+    process.env.NEXT_PUBLIC_SOL_WS_URL ||
+    endpoint.replace("https://", "wss://");
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
+    <ConnectionProvider
+      endpoint={endpoint}
+      config={{
+        wsEndpoint,
+        commitment: "confirmed",
+      }}
+    >
       <WalletProvider wallets={[]} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
