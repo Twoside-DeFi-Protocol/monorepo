@@ -66,7 +66,7 @@ async function getSolanaDerivative(tokenAddressOrMint: string) {
     const account = await (program.account as any).tokenInfo.fetch(pda);
     return account.derivativeMint.toString();
   } catch {
-    return "";
+    return SOL_ADDRESS_NULL_VALUE;
   }
 }
 
