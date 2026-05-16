@@ -22,7 +22,7 @@ const resources = [
   {
     title: "Litepaper",
     description:
-      "Understand Twoside mechanics, derivative minting, redemption flows, and the economic design powering the protocol.",
+      "Understand Twoside mechanics, derivative minting, unlock flows, and the economic design powering the protocol.",
     href: "/files/litepaper.pdf",
     cta: "Read Litepaper",
     icon: BookOpen,
@@ -36,8 +36,6 @@ const resources = [
     icon: FileSearch,
   },
 ];
-
-const quickLinks = ["Contract Addresses", "Block Explorer", "Documentation"];
 
 export default function TrustSection() {
   return (
@@ -169,7 +167,7 @@ export default function TrustSection() {
               </h2>
 
               <p className="mb-6 text-sm leading-7 text-white/70 sm:text-base sm:leading-8">
-                Every lock, mint, and redemption event can be verified on-chain.
+                Every lock, mint, and unlock event can be verified on-chain.
                 Twoside is built around transparency-first infrastructure.
               </p>
 
