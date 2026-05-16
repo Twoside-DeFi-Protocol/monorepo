@@ -15,7 +15,7 @@ const resources = [
     title: "Source Code",
     description:
       "Explore smart contracts, review architecture decisions, and verify every protocol interaction directly from the repository.",
-    href: "https://github.com/your-repo",
+    href: "https://github.com/Twoside-DeFi-Protocol/monorepo",
     cta: "View Repository",
     icon: Code2,
   },
@@ -23,7 +23,7 @@ const resources = [
     title: "Litepaper",
     description:
       "Understand Twoside mechanics, derivative minting, redemption flows, and the economic design powering the protocol.",
-    href: "/litepaper.pdf",
+    href: "/files/litepaper.pdf",
     cta: "Read Litepaper",
     icon: BookOpen,
   },
@@ -31,7 +31,7 @@ const resources = [
     title: "Security Audit",
     description:
       "Review independent security findings, vulnerability analysis, and recommendations from external auditors.",
-    href: "/audit.pdf",
+    href: "/files/audit.pdf",
     cta: "Open Audit",
     icon: FileSearch,
   },
@@ -207,7 +207,8 @@ export default function TrustSection() {
 
               <div className="space-y-3 sm:space-y-4">
                 <a
-                  href="#"
+                  href="https://etherscan.io/address/0xda0C7529D534D133E85AF10aDC050da29540dE4C"
+                  target="_blank"
                   className="flex items-center justify-between rounded-[18px] border-2 border-[#181818]
                   bg-custom-root-bg px-4 py-3.5 sm:px-[18px] sm:py-4 font-extrabold text-[#181818]
                   transition-transform duration-200 hover:translate-x-1"
@@ -216,7 +217,8 @@ export default function TrustSection() {
                   <ChevronRight className="h-5 w-5" />
                 </a>
                 <a
-                  href="#"
+                  href="https://basescan.org/address/0xdD28610425F663D87F2ee938E238A394388Ed401"
+                  target="_blank"
                   className="flex items-center justify-between rounded-[18px] border-2 border-[#181818]
                   bg-custom-root-bg px-4 py-3.5 sm:px-[18px] sm:py-4 font-extrabold text-[#181818]
                   transition-transform duration-200 hover:translate-x-1"
@@ -225,7 +227,8 @@ export default function TrustSection() {
                   <ChevronRight className="h-5 w-5" />
                 </a>
                 <a
-                  href="#"
+                  href="https://explorer.solana.com/address/Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW"
+                  target="_blank"
                   className="flex items-center justify-between rounded-[18px] border-2 border-[#181818]
                   bg-custom-root-bg px-4 py-3.5 sm:px-[18px] sm:py-4 font-extrabold text-[#181818]
                   transition-transform duration-200 hover:translate-x-1"
