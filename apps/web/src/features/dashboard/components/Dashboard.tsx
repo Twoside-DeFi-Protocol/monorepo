@@ -5,6 +5,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { HowItWorks } from "@/components/HowItWorks";
 import { UseCases } from "@/components/UseCases";
+import TrustSection from "@/components/TrustSection";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("Lock");
@@ -13,7 +14,7 @@ export default function Dashboard() {
     <div className="min-h-screen mx-auto">
       <motion.h1
         id="title"
-        className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6
+        className="text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6
               leading-tight text-center mx-auto mt-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -78,6 +79,7 @@ export default function Dashboard() {
         mint liquid locked tokens at 1:1, and unlock new DeFi opportunities
         without selling your holdings.
       </motion.p>
+      <TrustSection />
       <HowItWorks />
       <UseCases />
     </div>

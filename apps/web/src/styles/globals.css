@@ -7,6 +7,10 @@
   box-shadow: 8px 8px 0px #000000;
 }
 
+.custom-box-shadow-lite {
+  box-shadow: 4px 4px 0px #000000;
+}
+
 @theme {
   --color-custom-root-bg: #fdfffc;
   --color-custom-root-text: #000000;
