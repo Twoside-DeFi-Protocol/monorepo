@@ -10,6 +10,7 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Ethereum](https://img.shields.io/badge/Ethereum-3C3C3D?logo=ethereum&logoColor=white)](https://etherscan.io/address/0xd81945ce1f5df00418a9029f3a1c6acd688f6e8a)
   [![Base](https://img.shields.io/badge/Base-0052FF?logo=coinbase&logoColor=white)](https://basescan.org/address/0xd81945ce1f5df00418a9029f3a1c6acd688f6e8a)
+  [![Solana](https://img.shields.io/badge/Solana-9945FF?logo=solana&logoColor=white)](https://explorer.solana.com/address/Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW)
 
 **Follow us on X (Twitter):** [![X](https://img.shields.io/badge/TwosideFinance-000000?style=flat&logo=x&logoColor=white)](https://x.com/TwosideFinance)
 
@@ -64,6 +65,10 @@
   ![Wagmi](https://img.shields.io/badge/Wagmi-1C1B1B?style=for-the-badge&logo=ethereum&logoColor=white)
   ![Viem](https://img.shields.io/badge/Viem-646CFF?style=for-the-badge&logo=ethereum&logoColor=white)
   ![OpenZeppelin](https://img.shields.io/badge/OpenZeppelin-4E5EE4?style=for-the-badge&logo=openzeppelin&logoColor=white)
+  ![Rust](https://img.shields.io/badge/rust-%23CE412B.svg?style=for-the-badge&logo=rust&logoColor=white)
+  ![Anchor Framework](https://img.shields.io/badge/Anchor%20Framework-%231A202C.svg?style=for-the-badge&logo=solana&logoColor=14F195)
+  ![Anchor JS SDK](https://img.shields.io/badge/Anchor%20JS%20SDK-%233178C6.svg?style=for-the-badge&logo=typescript&logoColor=white)
+  ![Anza Wallet Adapter](https://img.shields.io/badge/Anza%20Wallet%20Adapter-%239945FF.svg?style=for-the-badge&logo=solana&logoColor=white)
   ![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?style=for-the-badge&logo=turborepo&logoColor=white)
   ![pnpm](https://img.shields.io/badge/pnpm-F69220?style=for-the-badge&logo=pnpm&logoColor=white)
   
