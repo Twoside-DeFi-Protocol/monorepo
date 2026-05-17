@@ -79,9 +79,9 @@ export default function Dashboard() {
         mint liquid locked tokens at 1:1, and unlock new DeFi opportunities
         without selling your holdings.
       </motion.p>
-      <TrustSection />
       <HowItWorks />
       <UseCases />
+      <TrustSection />
     </div>
   );
 }
