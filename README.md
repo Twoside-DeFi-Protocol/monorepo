@@ -3,9 +3,11 @@
   
   # Twoside
   
-  **Transform any token into a tradeable derivative**
+  **Liquidity Routing Infrastructure**
   
-  Lock tokens, mint 1:1 liquid-locked tokens, and unlock new DeFi opportunities without selling holdings.
+  A liquidity layer that introduces 1:1 token assets to
+improve swap routing efficiency across fragmented DEX
+markets.
   
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Ethereum](https://img.shields.io/badge/Ethereum-3C3C3D?logo=ethereum&logoColor=white)](https://etherscan.io/address/0xd81945ce1f5df00418a9029f3a1c6acd688f6e8a)
@@ -93,13 +95,13 @@
 
 ## 🌟 Introduction
 
-Twoside enables users to lock ERC-20 tokens into the protocol and receive fully liquid, 1:1 derivative tokens (liquid-locked tokens). These derivatives let holders access DeFi strategies (swap, farm, borrow, etc.) while still maintaining economic exposure to the locked asset.
+Twoside enables users to lock tokens into the protocol to mint liTokens. liTokens are liquid-locked tokens that are fully liquid and 1:1 redeemable anytime. Once liquidity pairs are created with these liquidity-locked tokens, they introduce a new liquidity layer for DEX aggregators to improve swap routing efficiency, allow liquidity providers to earn from real DEX volume, and let holders earn from tokens they would usually only hold, because with TOKEN/liTOKEN pairs, these pairs will not experience the traditional negative effects from impermanent loss. Allowing holders to continue to have 100% full exposure in the token they want to hold while earning more of it.
 
 **Key Features:**
 
-- 🔒 Lock any ERC-20 token
-- 💧 Receive liquid derivative tokens (1:1 ratio minus 0.5% fee)
-- 🔓 Unlock anytime by burning derivative tokens
+- 🔒 Lock any token
+- 💧 Receive liquid-locked tokens (1:1 ratio minus 0.5% fee)
+- 🔓 Unlock anytime by burning the litokens
 - 🌐 Deployed on Ethereum and Base with identical code
 
 ---
@@ -197,14 +199,14 @@ When a user locks tokens:
    - Naming convention:
      - **Name:** "Liquid " + original token name
      - **Symbol:** "li" + original token symbol
-     - **Decimals:** Exactly same as original token
+     - **Decimals:** Exactly the same as the original token
 
 ### Unlock Function
 
 When a user unlocks tokens:
 
 1. **Approval Required:** User must approve the derivative token amount to the Twoside contract
-2. **Transfer:** Contract transfers derivative tokens from user to itself
+2. **Transfer:** Contract transfers derivative tokens from the user to itself
 3. **Burn:** Derivative tokens are burned
 4. **Fee Deduction:** 0.5% fee is deducted from the underlying token amount (not derivative amount)
 5. **Transfer Back:** Remaining underlying tokens are sent back to the user
