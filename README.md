@@ -95,7 +95,7 @@ markets.
 
 ## 🌟 Introduction
 
-Twoside enables users to lock tokens into the protocol to mint liTokens. liTokens are liquid-locked tokens that are fully liquid and 1:1 redeemable anytime. Once liquidity pairs are created with these liquidity-locked tokens, they introduce a new liquidity layer for DEX aggregators to improve swap routing efficiency, allow liquidity providers to earn from real DEX volume, and let holders earn from tokens they would usually only hold, because with TOKEN/liTOKEN pairs, these pairs will not experience the traditional negative effects from impermanent loss. Allowing holders to continue to have 100% full exposure in the token they want to hold while earning more of it.
+Twoside enables users to lock tokens into the protocol to mint liTokens. liTokens are liquid-locked tokens that are fully liquid and 1:1 redeemable anytime. Once liquidity pairs are created with these liquid-locked tokens, they introduce a new liquidity layer for DEX aggregators to improve swap routing efficiency, allow liquidity providers to earn from real DEX volume, and let holders earn from tokens they would usually only hold, because with TOKEN/liTOKEN pairs, these pairs will not experience the traditional negative effects from impermanent loss. Allowing holders to continue to have 100% full exposure in the token they want to hold while earning more of it.
 
 **Key Features:**
 
