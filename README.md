@@ -101,7 +101,7 @@ Twoside enables users to lock tokens into the protocol to mint liTokens. liToken
 
 - 🔒 Lock any token
 - 💧 Receive liquid-locked tokens (1:1 ratio minus 0.5% fee)
-- 🔓 Unlock anytime by burning the litokens
+- 🔓 Unlock anytime by burning the liTokens
 - 🌐 Deployed on Ethereum and Base with identical code
 
 ---
