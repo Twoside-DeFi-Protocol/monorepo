@@ -3,11 +3,9 @@
   
   # Twoside
   
-  **Liquidity Routing Infrastructure**
+  **Removing Impermanent Loss With 1:1 Minted Tokens**
   
-  A liquidity layer that introduces 1:1 token assets to
-improve swap routing efficiency across fragmented DEX
-markets.
+  Lock a Token To Mint a Liquid-Locked Token That Is 1:1 Redeemable Anytime. Provide Liquidity To Earn Yield Without Impermanent Loss.
   
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Ethereum](https://img.shields.io/badge/Ethereum-3C3C3D?logo=ethereum&logoColor=white)](https://etherscan.io/address/0xd81945ce1f5df00418a9029f3a1c6acd688f6e8a)
@@ -95,7 +93,7 @@ markets.
 
 ## 🌟 Introduction
 
-Twoside enables users to lock tokens into the protocol to mint liTokens. liTokens are liquid-locked tokens that are fully liquid and 1:1 redeemable anytime. Once liquidity pairs are created with these liquid-locked tokens, they introduce a new liquidity layer for DEX aggregators to improve swap routing efficiency, allow liquidity providers to earn from real DEX volume, and let holders earn from tokens they would usually only hold, because with TOKEN/liTOKEN pairs, these pairs will not experience the traditional negative effects from impermanent loss. Allowing holders to continue to have 100% full exposure in the token they want to hold while earning more of it.
+Twoside enables users to lock tokens into the protocol to mint liTokens. liTokens are liquid-locked tokens that are fully liquid and 1:1 redeemable at any time. Once liquidity pairs are created with these liquid-locked tokens, users can earn yield without the negative effects of impermanent loss. With TOKEN/liTOKEN pairs, users now have 100% full exposure in the token they want to hold while earning more of it. Yield comes from bots consistently keeping the peg 1:1. The more volatile the coin, the more yield liquidity providers make.
 
 **Key Features:**
 
