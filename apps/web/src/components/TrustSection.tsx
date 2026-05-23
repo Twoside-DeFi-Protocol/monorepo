@@ -228,7 +228,7 @@ export default function TrustSection() {
                   <ChevronRight className="h-5 w-5" />
                 </a>
                 <a
-                  href="https://explorer.solana.com/address/Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW"
+                  href="https://solscan.io/account/Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW"
                   target="_blank"
                   className="flex items-center justify-between rounded-[18px] border-2 border-custom-primary-color
                   bg-custom-root-bg px-4 py-3.5 sm:px-[18px] sm:py-4 font-extrabold text-custom-primary-text
