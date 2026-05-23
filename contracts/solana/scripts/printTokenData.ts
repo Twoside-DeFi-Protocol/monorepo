@@ -11,7 +11,10 @@ import {
 } from "./setup";
 import { user } from "../env";
 
-async function safeGetBalance(connection: Connection, ata: PublicKey): Promise<string> {
+async function safeGetBalance(
+  connection: Connection,
+  ata: PublicKey,
+): Promise<string> {
   try {
     const balanceInfo = await connection.getTokenAccountBalance(ata);
     // ✅ Balance retrieved successfully
@@ -74,23 +77,35 @@ async function safeGetBalance(connection: Connection, ata: PublicKey): Promise<s
 
     console.log("\n--- ORIGINAL TOKENS ---");
     console.log(`User original ATA: ${userOrigAta.toBase58()}`);
-    console.log(`User original balance: ${await safeGetBalance(connection, userOrigAta)}`);
+    console.log(
+      `User original balance: ${await safeGetBalance(connection, userOrigAta)}`,
+    );
 
     console.log(`Developer original ATA: ${developerOrigAta.toBase58()}`);
-    console.log(`Developer original balance: ${await safeGetBalance(connection, developerOrigAta)}`);
+    console.log(
+      `Developer original balance: ${await safeGetBalance(connection, developerOrigAta)}`,
+    );
 
     console.log(`Founder original ATA: ${founderOrigAta.toBase58()}`);
-    console.log(`Founder original balance: ${await safeGetBalance(connection, founderOrigAta)}`);
+    console.log(
+      `Founder original balance: ${await safeGetBalance(connection, founderOrigAta)}`,
+    );
 
     console.log("\n--- DERIVATIVE TOKENS ---");
     console.log(`User derivative ATA: ${userDerivAta.toBase58()}`);
-    console.log(`User derivative balance: ${await safeGetBalance(connection, userDerivAta)}`);
+    console.log(
+      `User derivative balance: ${await safeGetBalance(connection, userDerivAta)}`,
+    );
 
     console.log(`Developer derivative ATA: ${developerDerivAta.toBase58()}`);
-    console.log(`Developer derivative balance: ${await safeGetBalance(connection, developerDerivAta)}`);
+    console.log(
+      `Developer derivative balance: ${await safeGetBalance(connection, developerDerivAta)}`,
+    );
 
     console.log(`Founder derivative ATA: ${founderDerivAta.toBase58()}`);
-    console.log(`Founder derivative balance: ${await safeGetBalance(connection, founderDerivAta)}`);
+    console.log(
+      `Founder derivative balance: ${await safeGetBalance(connection, founderDerivAta)}`,
+    );
     console.log("==========================================");
   } catch (e: any) {
     // ❌ Fatal error occurred

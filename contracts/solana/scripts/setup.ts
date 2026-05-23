@@ -55,10 +55,16 @@ let loadedState = defaultState;
 if (fs.existsSync(STATE_FILE_PATH)) {
   try {
     loadedState = JSON.parse(fs.readFileSync(STATE_FILE_PATH, "utf-8"));
-    console.log(`✅ [setup.ts] Loaded shared state from state.json:`, loadedState);
+    console.log(
+      `✅ [setup.ts] Loaded shared state from state.json:`,
+      loadedState,
+    );
   } catch (error) {
     // ❌ Failed to load shared state
-    console.error(`❌ [setup.ts] Failed to read state.json, using defaults:`, error);
+    console.error(
+      `❌ [setup.ts] Failed to read state.json, using defaults:`,
+      error,
+    );
   }
 } else {
   // ⚠️ No shared state file exists

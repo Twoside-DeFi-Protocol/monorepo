@@ -2,6 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import type { Twoside } from "../target/types/twoside";
 import * as splToken from "@solana/spl-token";
+import { createInitializeInstruction, pack } from "@solana/spl-token-metadata";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import {
   createSignerFromKeypair,
@@ -36,7 +37,7 @@ class Setup {
     Buffer.from("vault_authority");
   public METADATA_STATIC_SEED: Buffer<ArrayBuffer> = Buffer.from("metadata");
   public DERIVATIVE_AUTHORITY_STATIC_SEED: Buffer<ArrayBuffer> = Buffer.from(
-    "derivative_authority"
+    "derivative_authority",
   );
   public DERIVATIVE_MINT_STATIC_SEED: Buffer<ArrayBuffer> =
     Buffer.from("derivative_mint");
@@ -60,7 +61,11 @@ class Setup {
   public globalInfoPDA: anchor.web3.PublicKey;
   public globalInfoBump: number;
 
+  // Track standard SPL token mint
   public tokenMint: anchor.web3.PublicKey = null;
+
+  // Track Token-2022 mint
+  public token2022Mint: anchor.web3.PublicKey = null;
 
   private constructor() {}
 
@@ -94,36 +99,106 @@ class Setup {
     [this.globalInfoPDA, this.globalInfoBump] =
       anchor.web3.PublicKey.findProgramAddressSync(
         [this.GLOBAL_INFO_STATIC_SEED],
-        this.program.programId
+        this.program.programId,
       );
 
-    this.umi = createUmi(this.connection);
+    this.umi = createUmi(this.connection.rpcEndpoint);
     this.umiSigner = createSignerFromKeypair(
       this.umi,
-      fromWeb3JsKeypair(this.payer)
+      fromWeb3JsKeypair(this.payer),
     );
     this.umi.use(signerIdentity(this.umiSigner, true));
   }
 
   public async airdropToWallet(
     publicKey: anchor.web3.PublicKey,
-    balance: number
+    balance: number,
   ) {
     const sig = await this.connection.requestAirdrop(publicKey, balance);
     await this.connection.confirmTransaction(sig, "finalized");
   }
 
+  // ✅ Helper to create a standard SPL token mint
   public async generateTokenMint(
-    decimals: number
+    decimals: number,
   ): Promise<anchor.web3.PublicKey> {
     const mint = await splToken.createMint(
       this.connection,
       this.payer,
       this.payer.publicKey,
       this.payer.publicKey,
-      decimals
+      decimals,
     );
     return (this.tokenMint = mint);
+  }
+
+  // ✅ Helper to create a Token-2022 mint with Metadata Pointer and Metadata extensions initialized
+  public async generateToken2022Mint(
+    decimals: number,
+    name: string,
+    symbol: string,
+    uri: string,
+  ): Promise<anchor.web3.PublicKey> {
+    const mintKeypair = anchor.web3.Keypair.generate();
+    const mint = mintKeypair.publicKey;
+
+    const metadata = {
+      mint: mint,
+      name: name,
+      symbol: symbol,
+      uri: uri,
+      additionalMetadata: [],
+    };
+
+    const extensions = [splToken.ExtensionType.MetadataPointer];
+    const mintLen = splToken.getMintLen(extensions);
+    const metadataLen =
+      splToken.TYPE_SIZE + splToken.LENGTH_SIZE + pack(metadata).length;
+    const lamports = await this.connection.getMinimumBalanceForRentExemption(
+      mintLen + metadataLen,
+    );
+
+    const transaction = new anchor.web3.Transaction().add(
+      anchor.web3.SystemProgram.createAccount({
+        fromPubkey: this.payer.publicKey,
+        newAccountPubkey: mint,
+        space: mintLen + metadataLen,
+        lamports,
+        programId: splToken.TOKEN_2022_PROGRAM_ID,
+      }),
+      splToken.createInitializeMetadataPointerInstruction(
+        mint,
+        this.payer.publicKey,
+        mint,
+        splToken.TOKEN_2022_PROGRAM_ID,
+      ),
+      splToken.createInitializeMintInstruction(
+        mint,
+        decimals,
+        this.payer.publicKey,
+        this.payer.publicKey,
+        splToken.TOKEN_2022_PROGRAM_ID,
+      ),
+      createInitializeInstruction({
+        programId: splToken.TOKEN_2022_PROGRAM_ID,
+        mint: mint,
+        metadata: mint,
+        name: metadata.name,
+        symbol: metadata.symbol,
+        uri: metadata.uri,
+        mintAuthority: this.payer.publicKey,
+        updateAuthority: this.payer.publicKey,
+      }),
+    );
+
+    await anchor.web3.sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [this.payer, mintKeypair],
+      { commitment: "confirmed" },
+    );
+
+    return (this.token2022Mint = mint);
   }
 
   public getTokenMetadataPDA(mint: anchor.web3.PublicKey): {
@@ -137,7 +212,7 @@ class Setup {
           new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID).toBuffer(),
           mint.toBuffer(),
         ],
-        new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID)
+        new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID),
       );
     return {
       pda: derivativeMetadataPDA,
@@ -149,7 +224,7 @@ class Setup {
     name: string,
     symbol: string,
     uri: string,
-    mint: anchor.web3.PublicKey
+    mint: anchor.web3.PublicKey,
   ) {
     const onChainData = {
       name,
@@ -182,7 +257,7 @@ class Setup {
     const [tokenInfoPDA, tokenInfoBump] =
       anchor.web3.PublicKey.findProgramAddressSync(
         [this.TOKEN_INFO_STATIC_SEED, mint.toBuffer()],
-        this.program.programId
+        this.program.programId,
       );
     return {
       pda: tokenInfoPDA,
@@ -190,34 +265,42 @@ class Setup {
     };
   }
 
+  // ✅ Accept custom token program ID (defaults to standard TOKEN_PROGRAM_ID)
   public async getTokenATA(
     mint: anchor.web3.PublicKey,
-    owner: anchor.web3.PublicKey
+    owner: anchor.web3.PublicKey,
+    tokenProgramId: anchor.web3.PublicKey = splToken.TOKEN_PROGRAM_ID,
   ) {
     return await splToken.getOrCreateAssociatedTokenAccount(
       this.connection,
       this.payer,
       mint,
-      owner
+      owner,
+      undefined,
+      "confirmed",
+      undefined,
+      tokenProgramId,
     );
   }
 
+  // ✅ Accept custom token program ID
   public getDerivativeATA(
     derivativeMint: anchor.web3.PublicKey,
-    owner: anchor.web3.PublicKey
+    owner: anchor.web3.PublicKey,
+    tokenProgramId: anchor.web3.PublicKey = splToken.TOKEN_PROGRAM_ID,
   ): anchor.web3.PublicKey {
     const [derivativeAta] = PublicKey.findProgramAddressSync(
-      [
-        owner.toBuffer(),
-        splToken.TOKEN_PROGRAM_ID.toBuffer(),
-        derivativeMint.toBuffer(),
-      ],
-      splToken.ASSOCIATED_TOKEN_PROGRAM_ID
+      [owner.toBuffer(), tokenProgramId.toBuffer(), derivativeMint.toBuffer()],
+      splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
     );
     return derivativeAta;
   }
 
-  public getTokenVault(mint: anchor.web3.PublicKey): {
+  // ✅ Accept custom token program ID
+  public getTokenVault(
+    mint: anchor.web3.PublicKey,
+    tokenProgramId: anchor.web3.PublicKey = splToken.TOKEN_PROGRAM_ID,
+  ): {
     authority: anchor.web3.PublicKey;
     authorityBump: number;
     ata: anchor.web3.PublicKey;
@@ -226,16 +309,16 @@ class Setup {
     const [vaultAuthorityPDA, vaultAuthorityBump] =
       anchor.web3.PublicKey.findProgramAddressSync(
         [this.VAULT_AUTHORITY_STATIC_SEED, mint.toBuffer()],
-        this.program.programId
+        this.program.programId,
       );
 
     const [vaultAta, vaultAtaBump] = PublicKey.findProgramAddressSync(
       [
         vaultAuthorityPDA.toBuffer(),
-        splToken.TOKEN_PROGRAM_ID.toBuffer(),
+        tokenProgramId.toBuffer(),
         mint.toBuffer(),
       ],
-      splToken.ASSOCIATED_TOKEN_PROGRAM_ID
+      splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
     );
 
     return {
@@ -253,7 +336,7 @@ class Setup {
     const [derivativeAuthorityPDA, derivativeAuthorityBump] =
       anchor.web3.PublicKey.findProgramAddressSync(
         [this.DERIVATIVE_AUTHORITY_STATIC_SEED, mint.toBuffer()],
-        this.program.programId
+        this.program.programId,
       );
 
     return {
@@ -269,7 +352,7 @@ class Setup {
     const [derivativeMintPDA, derivativeMintBump] =
       anchor.web3.PublicKey.findProgramAddressSync(
         [this.DERIVATIVE_MINT_STATIC_SEED, mint.toBuffer()],
-        this.program.programId
+        this.program.programId,
       );
 
     return {
@@ -300,7 +383,7 @@ export const setup: Setup = Setup.getInstance();
 export async function fetchLogsFromSignature(
   connection: Connection,
   signature: string,
-  commitment: anchor.web3.Finality = "confirmed"
+  commitment: anchor.web3.Finality = "confirmed",
 ): Promise<string[] | null> {
   const tx = await connection.getTransaction(signature, { commitment });
   if (tx && tx.meta && tx.meta.logMessages) {

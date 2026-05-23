@@ -1,32 +1,23 @@
-import { 
-  ExtensionType, 
-  createInitializeMintInstruction, 
-  createInitializeMetadataPointerInstruction, 
-  getMintLen, 
-  TOKEN_2022_PROGRAM_ID, 
-  TYPE_SIZE, 
+import {
+  ExtensionType,
+  createInitializeMintInstruction,
+  createInitializeMetadataPointerInstruction,
+  getMintLen,
+  TOKEN_2022_PROGRAM_ID,
+  TYPE_SIZE,
   LENGTH_SIZE,
   getOrCreateAssociatedTokenAccount,
-  mintTo
+  mintTo,
 } from "@solana/spl-token";
-import { 
-  createInitializeInstruction, 
-  pack 
-} from "@solana/spl-token-metadata";
-import { 
-  SystemProgram, 
-  Transaction, 
-  sendAndConfirmTransaction, 
+import { createInitializeInstruction, pack } from "@solana/spl-token-metadata";
+import {
+  SystemProgram,
+  Transaction,
+  sendAndConfirmTransaction,
   PublicKey,
-  Keypair 
+  Keypair,
 } from "@solana/web3.js";
-import { 
-  connection, 
-  developer, 
-  founder, 
-  saveState, 
-  programId 
-} from "./setup";
+import { connection, developer, founder, saveState, programId } from "./setup";
 import { user } from "../env";
 
 (async function main() {
@@ -61,7 +52,9 @@ import { user } from "../env";
     );
 
     // 3. Build and send transaction to initialize Mint with Extensions
-    console.log("2. Sending Transaction to Create and Initialize Mint Account...");
+    console.log(
+      "2. Sending Transaction to Create and Initialize Mint Account...",
+    );
     const transaction = new Transaction().add(
       SystemProgram.createAccount({
         fromPubkey: user.publicKey,
@@ -96,10 +89,10 @@ import { user } from "../env";
     );
 
     const sig = await sendAndConfirmTransaction(
-      connection, 
-      transaction, 
+      connection,
+      transaction,
       [user, mintKeypair],
-      { commitment: "confirmed" }
+      { commitment: "confirmed" },
     );
     // ✅ Token-2022 Mint Created
     console.log(`✅ Token-2022 Mint Created. Signature: ${sig}`);
@@ -168,7 +161,9 @@ import { user } from "../env";
       programId,
     );
     // ✅ Derived Derivative Mint PDA
-    console.log(`✅ Derived Derivative Mint PDA: ${derivativeMintPDA.toBase58()}`);
+    console.log(
+      `✅ Derived Derivative Mint PDA: ${derivativeMintPDA.toBase58()}`,
+    );
 
     // 7. Save new state to state.json
     console.log("\n5. Saving updated state to state.json...");

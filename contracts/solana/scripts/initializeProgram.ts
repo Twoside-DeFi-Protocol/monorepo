@@ -1,11 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import { 
-  program, 
-  programId, 
-  developer, 
-  founder 
-} from "./setup";
+import { program, programId, developer, founder } from "./setup";
 import { user } from "../env";
 
 (async function main() {
