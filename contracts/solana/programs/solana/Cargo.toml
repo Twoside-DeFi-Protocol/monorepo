@@ -23,5 +23,6 @@ anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
 anchor-spl = { version = "0.32.1", features = ["token", "associated_token", "metadata"] }
 spl-associated-token-account = { version = "7.0.0", features = ["no-entrypoint"] }
 mpl-token-metadata = "5.1.1"
-borsh = "0.10"
-borsh-derive = "0.10"
+spl-token-2022 = "8"
+spl-token-metadata-interface = "0.7"
+borsh = "1.5.7"

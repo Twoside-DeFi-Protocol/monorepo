@@ -1,5 +1,6 @@
 import * as splToken from "@solana/spl-token";
-import { connection, developer, founder, tokenMint, user } from "./setup";
+import { connection, developer, founder, tokenMint } from "./setup";
+import { user } from "../env";
 
 (async function main() {
   try {
@@ -13,24 +14,24 @@ import { connection, developer, founder, tokenMint, user } from "./setup";
     console.log("User ATA: ", userAta.address);
 
     // DEVELOPER ATA
-    const developerAta = await splToken.getOrCreateAssociatedTokenAccount(
-      connection,
-      user, // payer
-      tokenMint,
-      developer.publicKey,
-    );
-    console.log("Developer ATA: ", developerAta.address);
+    // const developerAta = await splToken.getOrCreateAssociatedTokenAccount(
+    //   connection,
+    //   user, // payer
+    //   tokenMint,
+    //   developer,
+    // );
+    // console.log("Developer ATA: ", developerAta.address);
 
     // FOUNDER ATA
-    const founderAta = await splToken.getOrCreateAssociatedTokenAccount(
-      connection,
-      user, // payer
-      tokenMint,
-      founder,
-    );
-    console.log("Founder ATA: ", founderAta.address);
+    // const founderAta = await splToken.getOrCreateAssociatedTokenAccount(
+    //   connection,
+    //   user, // payer
+    //   tokenMint,
+    //   founder,
+    // );
+    // console.log("Founder ATA: ", founderAta.address);
 
-    console.log("");
+    // console.log("");
 
     // ✅ MINT TOKENS (user is mint authority)
     const mintAmount = 1000 * 10 ** 9; // adjust decimals if needed

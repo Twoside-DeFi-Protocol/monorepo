@@ -1,4 +1,4 @@
-import { user } from "./setup";
+import { user } from "../env";
 
 (async function main() {
   try {

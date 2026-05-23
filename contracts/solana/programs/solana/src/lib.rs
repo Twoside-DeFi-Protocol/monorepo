@@ -2,10 +2,16 @@ use anchor_lang::prelude::*;
 
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{
-        self, mint_to, transfer_checked, Burn, Mint, MintTo, Token, TokenAccount, TransferChecked,
-    },
+    token::{self, mint_to, transfer_checked, Burn, MintTo, Token, TransferChecked},
+    token_2022::Token2022,
+    token_interface::{Mint, TokenAccount, TokenInterface},
 };
+
+use spl_token_2022::{
+    extension::{BaseStateWithExtensions, StateWithExtensions},
+    state::Mint as SplMint,
+};
+use spl_token_metadata_interface::state::TokenMetadata;
 
 use mpl_token_metadata::{
     accounts::Metadata,
@@ -59,12 +65,12 @@ pub mod twoside {
         let mpl_token_metadata_program = &ctx.accounts.mpl_token_metadata_program;
 
         let token_mint = &ctx.accounts.token_mint;
+        let token_metadata_acc = &ctx.accounts.token_metadata;
         let derivative_mint = &ctx.accounts.derivative_mint;
         let derivative_authority = &ctx.accounts.derivative_authority;
         let token_info = &mut ctx.accounts.token_info;
         let vault_authority = &ctx.accounts.vault_authority;
         let vault_ata = &ctx.accounts.vault_ata;
-        let token_metadata_acc = &ctx.accounts.token_metadata;
         let derivative_metadata_acc = &ctx.accounts.derivative_metadata;
 
         let global_info = &ctx.accounts.global_info;
@@ -75,11 +81,13 @@ pub mod twoside {
         let signer_token_ata = &ctx.accounts.signer_token_ata;
         let signer_derivative_ata = &ctx.accounts.signer_derivative_ata;
 
+        // Check for valid amount value
         require!(amount != 0, TwosideErrorCodes::ZeroAmountValue);
 
         let clock = Clock::get()?;
         let current_timestamp = clock.unix_timestamp;
 
+        // Derive derivative authority slice
         let mint_key = token_mint.key();
         let derivative_authority_seeds: &[&[u8]] = &[
             DERIVATIVE_AUTHORITY_SEED,
@@ -92,21 +100,28 @@ pub mod twoside {
             token_info.is_initialized = true;
             token_info.original_mint = token_mint.key();
 
-            let (token_metadata_address, _token_metadata_bump) = Pubkey::find_program_address(
-                &[
-                    METADATA_STATIC_SEED,
-                    metaplex_id.as_ref(),
-                    token_mint.key().as_ref(),
-                ],
-                &metaplex_id,
-            );
+            if token_metadata_acc.is_some() {
+                let token_metadata_unwrapped = token_metadata_acc.as_ref().unwrap();
 
-            require_eq!(
-                token_metadata_acc.key(),
-                token_metadata_address,
-                TwosideErrorCodes::InvalidTokenMetadataAddress
-            );
+                // Derive token metaplex metadata pda
+                let (token_metadata_address, _token_metadata_bump) = Pubkey::find_program_address(
+                    &[
+                        METADATA_STATIC_SEED,
+                        metaplex_id.as_ref(),
+                        token_mint.key().as_ref(),
+                    ],
+                    &metaplex_id,
+                );
 
+                // Check if account passed matches
+                require_eq!(
+                    token_metadata_unwrapped.key(),
+                    token_metadata_address,
+                    TwosideErrorCodes::InvalidTokenMetadataAddress
+                );
+            }
+
+            // Derive derivative token metaplex metadata pda
             let (derivative_metadata_address, _derivative_metadata_bump) =
                 Pubkey::find_program_address(
                     &[
@@ -117,24 +132,19 @@ pub mod twoside {
                     &metaplex_id,
                 );
 
+            // Check if account passed matches
             require_eq!(
                 derivative_metadata_acc.key(),
                 derivative_metadata_address,
                 TwosideErrorCodes::InvalidDerivativeMetadataAddress
             );
 
-            let token_metadata: Metadata =
-                Metadata::safe_deserialize(&token_metadata_acc.data.borrow())
-                    .map_err(|_| TwosideErrorCodes::UninitializedMetadata)?;
+            let (token_name, token_symbol, token_uri) =
+                read_token_metadata(token_program, token_mint, token_metadata_acc)?;
 
-            require_keys_eq!(
-                token_metadata.mint,
-                token_mint.key(),
-                TwosideErrorCodes::MetadataMintMismatch
-            );
-
-            let mut derivative_name = format!("Liquid {}", token_metadata.name.trim_end());
-            let mut derivative_symbol = format!("li{}", token_metadata.symbol.trim_end());
+            // Create derivative name and symbol
+            let mut derivative_name = format!("Liquid {}", token_name.trim_end());
+            let mut derivative_symbol = format!("li{}", token_symbol.trim_end());
 
             if derivative_name.as_bytes().len() > 32 {
                 derivative_name =
@@ -146,6 +156,7 @@ pub mod twoside {
                     String::from_utf8_lossy(&derivative_symbol.as_bytes()[..10]).to_string();
             }
 
+            // Create cpi accounts for metadata account creation
             let mint_key = token_mint.key();
             let derivative_mint_bump = ctx.bumps.derivative_mint;
             let derivative_mint_acc_seeds: &[&[u8]] = &[
@@ -167,11 +178,12 @@ pub mod twoside {
                 rent: Some(&rent_info),
             };
 
+            // Create metadata args for metaplex metadata
             let cpi_args = CreateMetadataAccountV3InstructionArgs {
                 data: DataV2 {
                     name: derivative_name,
                     symbol: derivative_symbol,
-                    uri: token_metadata.uri,
+                    uri: token_uri,
                     seller_fee_basis_points: 0,
                     creators: None,
                     collection: None,
@@ -181,6 +193,7 @@ pub mod twoside {
                 collection_details: None,
             };
 
+            // Invoke the instruction for creating metaplex pda
             CreateMetadataAccountV3Cpi::new(
                 &mpl_token_metadata_program.to_account_info(),
                 cpi_accounts,
@@ -342,6 +355,59 @@ pub mod twoside {
     }
 }
 
+pub fn read_token_metadata<'info>(
+    token_program: &Interface<'info, TokenInterface>,
+    token_mint: &InterfaceAccount<'info, Mint>,
+    token_metadata_acc: &Option<AccountInfo<'info>>,
+) -> Result<(String, String, String)> {
+    let is_token_2022 = token_program.key() == Token2022::id();
+
+    if !is_token_2022 {
+        let meta = token_metadata_acc
+            .as_ref()
+            .ok_or(TwosideErrorCodes::InvalidMetadata)?;
+
+        let metadata: Metadata = Metadata::safe_deserialize(&meta.data.borrow())
+            .map_err(|_| TwosideErrorCodes::UninitializedMetadata)?;
+
+        require_keys_eq!(
+            metadata.mint,
+            token_mint.key(),
+            TwosideErrorCodes::MetadataMintMismatch
+        );
+
+        return Ok((metadata.name, metadata.symbol, metadata.uri));
+    }
+
+    let mint_ai = token_mint.to_account_info();
+    let data = mint_ai
+        .try_borrow_data()
+        .map_err(|_| TwosideErrorCodes::InvalidMetadata)?;
+
+    if let Ok(state) = StateWithExtensions::<SplMint>::unpack(&data) {
+        if let Ok(ext) = state.get_variable_len_extension::<TokenMetadata>() {
+            return Ok((ext.name, ext.symbol, ext.uri));
+        }
+    }
+
+    if let Some(meta) = token_metadata_acc {
+        if meta.owner == &metaplex_id {
+            let metadata: Metadata = Metadata::safe_deserialize(&meta.data.borrow())
+                .map_err(|_| TwosideErrorCodes::UninitializedMetadata)?;
+
+            require_keys_eq!(
+                metadata.mint,
+                token_mint.key(),
+                TwosideErrorCodes::MetadataMintMismatch
+            );
+
+            return Ok((metadata.name, metadata.symbol, metadata.uri));
+        }
+    }
+
+    Err(TwosideErrorCodes::InvalidMetadata.into())
+}
+
 pub fn calculate_fee(
     amount: u64,
     fee_percentage: u64,
@@ -380,16 +446,16 @@ pub fn calculate_fee(
 }
 
 pub fn distribute_fee<'info>(
-    token_mint: &Account<'info, Mint>,
+    token_mint: &InterfaceAccount<'info, Mint>,
     fee: u64,
     timestamp: i64,
     global_info: &Account<'info, GlobalInfo>,
-    developer_ata: &Account<'info, TokenAccount>,
-    founder_ata: &Account<'info, TokenAccount>,
+    developer_ata: &InterfaceAccount<'info, TokenAccount>,
+    founder_ata: &InterfaceAccount<'info, TokenAccount>,
     vault_authority: &UncheckedAccount<'info>,
     vault_authority_bump: u8,
-    vault_ata: &Account<'info, TokenAccount>,
-    token_program: &Program<'info, Token>,
+    vault_ata: &InterfaceAccount<'info, TokenAccount>,
+    token_program: &Interface<'info, TokenInterface>,
 ) -> Result<()> {
     let developer_share = fee
         .checked_mul(global_info.developer_fee_share as u64)
@@ -464,7 +530,7 @@ pub struct InitializeProgram<'info> {
 #[derive(Accounts)]
 pub struct Lock<'info> {
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     /// CHECK: This is the Metaplex Token Metadata program
     #[account(address = metaplex_id)]
@@ -477,17 +543,18 @@ pub struct Lock<'info> {
 
     #[account(
         mut,
+        mint::token_program = token_program,
         constraint = token_mint.is_initialized
         @ ProgramError::UninitializedAccount
     )]
-    pub token_mint: Box<Account<'info, Mint>>,
+    pub token_mint: Box<InterfaceAccount<'info, Mint>>,
     /// CHECK: Metadata for token being locked
     #[account(
         mut,
         constraint = token_metadata.owner == &metaplex_id
         @ ProgramError::IncorrectProgramId
     )]
-    pub token_metadata: AccountInfo<'info>,
+    pub token_metadata: Option<AccountInfo<'info>>,
 
     /// CHECK: Derivative Token's Mint Authority.
     #[account(
@@ -503,10 +570,11 @@ pub struct Lock<'info> {
         mint::decimals = token_mint.decimals,
         mint::authority = derivative_authority,
         mint::freeze_authority = derivative_authority,
+        mint::token_program = token_program,
         seeds = [DERIVATIVE_MINT_STATIC_SEED, token_mint.key().as_ref()],
         bump
     )]
-    pub derivative_mint: Box<Account<'info, Mint>>,
+    pub derivative_mint: Box<InterfaceAccount<'info, Mint>>,
     /// CHECK: Metaplex Metadata account PDA, derived from mint and Metaplex program ID
     #[account(
         mut,
@@ -526,15 +594,17 @@ pub struct Lock<'info> {
         mut,
         token::mint = token_mint,
         token::authority = signer,
+        token::token_program = token_program,
     )]
-    pub signer_token_ata: Box<Account<'info, TokenAccount>>,
+    pub signer_token_ata: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         init_if_needed,
         payer = signer,
         associated_token::mint = derivative_mint,
         associated_token::authority = signer,
+        associated_token::token_program = token_program,
     )]
-    pub signer_derivative_ata: Box<Account<'info, TokenAccount>>,
+    pub signer_derivative_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init_if_needed,
@@ -562,8 +632,9 @@ pub struct Lock<'info> {
         payer = signer,
         associated_token::mint = token_mint,
         associated_token::authority = vault_authority,
+        associated_token::token_program = token_program,
     )]
-    pub vault_ata: Box<Account<'info, TokenAccount>>,
+    pub vault_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -577,29 +648,32 @@ pub struct Lock<'info> {
     #[account(
         mut,
         token::mint = token_mint,
+        token::token_program = token_program,
         constraint = founder_ata.owner == global_info.founder_wallet
     )]
-    pub founder_ata: Box<Account<'info, TokenAccount>>,
+    pub founder_ata: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         token::mint = token_mint,
+        token::token_program = token_program,
         constraint = developer_ata.owner == global_info.developer_wallet
     )]
-    pub developer_ata: Box<Account<'info, TokenAccount>>,
+    pub developer_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 }
 
 #[derive(Accounts)]
 pub struct Unlock<'info> {
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
 
     #[account(
         mut,
+        mint::token_program = token_program,
         constraint = token_mint.is_initialized
         @ ProgramError::UninitializedAccount
     )]
-    pub token_mint: Box<Account<'info, Mint>>,
+    pub token_mint: Box<InterfaceAccount<'info, Mint>>,
 
     /// CHECK: Derivative Token's Mint Authority.
     #[account(
@@ -614,10 +688,11 @@ pub struct Unlock<'info> {
         mint::decimals = token_mint.decimals,
         mint::authority = derivative_authority,
         mint::freeze_authority = derivative_authority,
+        mint::token_program = token_program,
         seeds = [DERIVATIVE_MINT_STATIC_SEED, token_mint.key().as_ref()],
         bump
     )]
-    pub derivative_mint: Box<Account<'info, Mint>>,
+    pub derivative_mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -625,14 +700,16 @@ pub struct Unlock<'info> {
         mut,
         token::mint = token_mint,
         token::authority = signer,
+        token::token_program = token_program,
     )]
-    pub signer_token_ata: Box<Account<'info, TokenAccount>>,
+    pub signer_token_ata: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         associated_token::mint = derivative_mint,
         associated_token::authority = signer,
+        associated_token::token_program = token_program,
     )]
-    pub signer_derivative_ata: Box<Account<'info, TokenAccount>>,
+    pub signer_derivative_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -659,8 +736,9 @@ pub struct Unlock<'info> {
         mut,
         associated_token::mint = token_mint,
         associated_token::authority = vault_authority,
+        associated_token::token_program = token_program,
     )]
-    pub vault_ata: Box<Account<'info, TokenAccount>>,
+    pub vault_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         mut,
@@ -674,15 +752,17 @@ pub struct Unlock<'info> {
     #[account(
         mut,
         token::mint = token_mint,
+        token::token_program = token_program,
         constraint = founder_ata.owner == global_info.founder_wallet
     )]
-    pub founder_ata: Box<Account<'info, TokenAccount>>,
+    pub founder_ata: Box<InterfaceAccount<'info, TokenAccount>>,
     #[account(
         mut,
         token::mint = token_mint,
+        token::token_program = token_program,
         constraint = developer_ata.owner == global_info.developer_wallet
     )]
-    pub developer_ata: Box<Account<'info, TokenAccount>>,
+    pub developer_ata: Box<InterfaceAccount<'info, TokenAccount>>,
 }
 
 pub const GLOBAL_INFO_STATIC_SEED: &[u8] = b"global_info";
@@ -745,6 +825,8 @@ pub enum TwosideErrorCodes {
     AmountInsufficientAfterFee,
     #[msg("Overflow")]
     Overflow,
+    #[msg("Invalid metadata account")]
+    InvalidMetadata,
 }
 
 // Events

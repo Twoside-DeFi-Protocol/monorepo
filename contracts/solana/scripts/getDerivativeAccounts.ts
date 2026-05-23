@@ -1,6 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
-import { tokenMint, programId, user, developer, founder } from "./setup";
+import { tokenMint, programId, developer, founder } from "./setup";
 import * as splToken from "@solana/spl-token";
+import { user } from "../env";
 
 const DERIVATIVE_MINT_STATIC_SEED: Buffer<ArrayBuffer> =
   Buffer.from("derivative_mint");
@@ -10,7 +11,7 @@ const DERIVATIVE_MINT_STATIC_SEED: Buffer<ArrayBuffer> =
     const [derivativeMintPDA, derivativeMintBump] =
       anchor.web3.PublicKey.findProgramAddressSync(
         [DERIVATIVE_MINT_STATIC_SEED, tokenMint.toBuffer()],
-        programId
+        programId,
       );
 
     console.log("Derivative Mint: ", derivativeMintPDA);
@@ -18,21 +19,21 @@ const DERIVATIVE_MINT_STATIC_SEED: Buffer<ArrayBuffer> =
 
     const userAta = await splToken.getAssociatedTokenAddressSync(
       derivativeMintPDA,
-      user.publicKey
+      user.publicKey,
     );
     console.log("User Derivative ATA: ", userAta.toString());
     console.log("");
 
     const developerAta = await splToken.getAssociatedTokenAddressSync(
       derivativeMintPDA,
-      developer.publicKey
+      developer.publicKey,
     );
     console.log("Developer Derivative ATA: ", developerAta.toString());
     console.log("");
 
     const founderAta = await splToken.getAssociatedTokenAddressSync(
       derivativeMintPDA,
-      founder
+      founder,
     );
     console.log("Founder Derivative ATA: ", founderAta.toString());
     console.log("");

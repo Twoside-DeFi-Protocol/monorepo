@@ -1,13 +1,14 @@
-import { developer, founder, program, user } from "./setup";
+import { user } from "../env";
+import { developer, founder, program } from "./setup";
 
 (async function main() {
   try {
-    console.log(`Developer PubKey - ${developer.publicKey}`);
+    console.log(`Developer PubKey - ${developer}`);
     console.log(`Founder PubKey - ${founder}`);
     console.log("Initializing Program :-");
     console.log("");
     const sig = await program.methods
-      .initializeProgram(developer.publicKey, founder)
+      .initializeProgram(developer, founder)
       .accounts({
         signer: user.publicKey,
       })

@@ -1,10 +1,10 @@
-import { developer, founder, program, programId, user } from "./setup";
+import { developer, founder, program, programId } from "./setup";
 import * as anchor from "@coral-xyz/anchor";
 
 (async function main() {
   try {
     console.log(`Founder Key - ${founder}`);
-    console.log(`Developer Key - ${developer.publicKey}`);
+    console.log(`Developer Key - ${developer}`);
 
     const [globalInfoPDA, globalInfoBump] =
       anchor.web3.PublicKey.findProgramAddressSync(

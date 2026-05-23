@@ -19,12 +19,8 @@ import {
   fromWeb3JsPublicKey,
 } from "@metaplex-foundation/umi-web3js-adapters";
 import { Buffer } from "buffer";
-import {
-  connection,
-  user,
-  tokenMint,
-  TOKEN_METADATA_PROGRAM_ID,
-} from "./setup";
+import { connection, tokenMint, TOKEN_METADATA_PROGRAM_ID } from "./setup";
+import { user } from "../env";
 
 (async function main() {
   try {

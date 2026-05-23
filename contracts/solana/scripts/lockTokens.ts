@@ -5,19 +5,19 @@ import {
   tokenDecimals,
   tokenMetaplexAccount,
   tokenMint,
-  user,
   program,
   userAta,
   developer,
   founder,
 } from "./setup";
 import { PublicKey } from "@solana/web3.js";
+import { user } from "../env";
 
 (async function main() {
   try {
     const developerAta = splToken.getAssociatedTokenAddressSync(
       tokenMint,
-      developer.publicKey,
+      developer,
     );
     const founderAta = splToken.getAssociatedTokenAddressSync(
       tokenMint,

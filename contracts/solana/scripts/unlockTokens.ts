@@ -3,18 +3,16 @@ import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-me
 import * as splToken from "@solana/spl-token";
 import {
   tokenDecimals,
-  tokenMetaplexAccount,
   tokenMint,
-  user,
   program,
   userAta,
   developer,
   founder,
-  userDerivativeAta,
   VAULT_AUTHORITY_STATIC_SEED,
   programId,
 } from "./setup";
 import { PublicKey } from "@solana/web3.js";
+import { user } from "../env";
 
 (async function main() {
   try {
@@ -29,7 +27,7 @@ import { PublicKey } from "@solana/web3.js";
 
     const developerAta = splToken.getAssociatedTokenAddressSync(
       tokenMint,
-      developer.publicKey,
+      developer,
     );
     const founderAta = splToken.getAssociatedTokenAddressSync(
       tokenMint,
