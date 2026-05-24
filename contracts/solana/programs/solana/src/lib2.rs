@@ -1,20 +1,15 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program::invoke_signed;
-use anchor_lang::system_program;
 
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{
-        self, mint_to, transfer_checked, Burn, Mint as SplMint, MintTo, Token, TransferChecked,
-    },
+    token::{self, mint_to, transfer_checked, Burn, MintTo, Token, TransferChecked},
     token_2022::Token2022,
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
 use spl_token_2022::{
-    extension::metadata_pointer::instruction::initialize,
-    extension::{BaseStateWithExtensions, ExtensionType, StateWithExtensions},
-    state::Mint as Token2022Mint,
+    extension::{BaseStateWithExtensions, StateWithExtensions},
+    state::Mint as SplMint,
 };
 use spl_token_metadata_interface::state::TokenMetadata;
 
@@ -70,12 +65,12 @@ pub mod twoside {
         let mpl_token_metadata_program = &ctx.accounts.mpl_token_metadata_program;
 
         let token_mint = &ctx.accounts.token_mint;
+        let token_metadata_acc = &ctx.accounts.token_metadata;
         let derivative_mint = &ctx.accounts.derivative_mint;
         let derivative_authority = &ctx.accounts.derivative_authority;
         let token_info = &mut ctx.accounts.token_info;
         let vault_authority = &ctx.accounts.vault_authority;
         let vault_ata = &ctx.accounts.vault_ata;
-        let token_metadata_acc = &ctx.accounts.token_metadata;
         let derivative_metadata_acc = &ctx.accounts.derivative_metadata;
 
         let global_info = &ctx.accounts.global_info;
@@ -86,11 +81,13 @@ pub mod twoside {
         let signer_token_ata = &ctx.accounts.signer_token_ata;
         let signer_derivative_ata = &ctx.accounts.signer_derivative_ata;
 
+        // Check for valid amount value
         require!(amount != 0, TwosideErrorCodes::ZeroAmountValue);
 
         let clock = Clock::get()?;
         let current_timestamp = clock.unix_timestamp;
 
+        // Derive derivative authority slice
         let mint_key = token_mint.key();
         let derivative_authority_seeds: &[&[u8]] = &[
             DERIVATIVE_AUTHORITY_SEED,
@@ -100,88 +97,8 @@ pub mod twoside {
         let derivative_authority_slice: &[&[&[u8]]] = &[derivative_authority_seeds];
 
         if token_info.derivative_mint == Pubkey::default() {
-            let derivative_mint_ai = derivative_mint.to_account_info();
-            let needs_init = derivative_mint_ai.data_is_empty();
-            let is_token_2022 = token_program.key() == spl_token_2022::ID;
-
-            if needs_init {
-                let mint_space = if token_program.key() == Token2022::id() {
-                    ExtensionType::try_calculate_account_len::<Token2022Mint>(&[
-                        ExtensionType::MetadataPointer,
-                    ])?
-                } else {
-                    SplMint::LEN
-                };
-
-                let lamports = Rent::get()?.minimum_balance(mint_space);
-
-                system_program::create_account(
-                    CpiContext::new_with_signer(
-                        system_program.to_account_info(),
-                        system_program::CreateAccount {
-                            from: signer.to_account_info(),
-                            to: derivative_mint_ai.clone(),
-                        },
-                        &[&[
-                            DERIVATIVE_MINT_STATIC_SEED,
-                            token_mint.key().as_ref(),
-                            &[ctx.bumps.derivative_mint],
-                        ]],
-                    ),
-                    lamports,
-                    mint_space as u64,
-                    &token_program.key(),
-                )?;
-
-                if is_token_2022 {
-                    let ix = initialize(
-                        &spl_token_2022::ID,
-                        &derivative_mint.key(),
-                        Some(derivative_authority.key()),
-                        Some(derivative_metadata_acc.key()),
-                    )?;
-
-                    invoke_signed(
-                        &ix,
-                        &[derivative_mint_ai.clone(), token_program.to_account_info()],
-                        &[&[
-                            DERIVATIVE_MINT_STATIC_SEED,
-                            token_mint.key().as_ref(),
-                            &[ctx.bumps.derivative_mint],
-                        ]],
-                    )?;
-                }
-
-                if token_program.key() == Token::id() {
-                    token::initialize_mint2(
-                        CpiContext::new(
-                            token_program.to_account_info(),
-                            token::InitializeMint2 {
-                                mint: derivative_mint_ai.clone(),
-                            },
-                        ),
-                        token_mint.decimals,
-                        &derivative_authority.key(),
-                        Some(&derivative_authority.key()),
-                    )?;
-                } else {
-                    anchor_spl::token_2022::initialize_mint2(
-                        CpiContext::new(
-                            token_program.to_account_info(),
-                            anchor_spl::token_2022::InitializeMint2 {
-                                mint: derivative_mint_ai.clone(),
-                            },
-                        ),
-                        token_mint.decimals,
-                        &derivative_authority.key(),
-                        Some(&derivative_authority.key()),
-                    )?;
-                }
-            }
-
             token_info.is_initialized = true;
             token_info.original_mint = token_mint.key();
-            token_info.derivative_mint = derivative_mint.key();
 
             if token_metadata_acc.is_some() {
                 let token_metadata_unwrapped = token_metadata_acc.as_ref().unwrap();
@@ -283,6 +200,8 @@ pub mod twoside {
                 cpi_args,
             )
             .invoke_signed(full_signer_seeds)?;
+
+            token_info.derivative_mint = derivative_mint.key();
 
             emit!(DerivativeTokenMinted {
                 token: token_mint.key(),
@@ -465,7 +384,7 @@ pub fn read_token_metadata<'info>(
         .try_borrow_data()
         .map_err(|_| TwosideErrorCodes::InvalidMetadata)?;
 
-    if let Ok(state) = StateWithExtensions::<Token2022Mint>::unpack(&data) {
+    if let Ok(state) = StateWithExtensions::<SplMint>::unpack(&data) {
         if let Ok(ext) = state.get_variable_len_extension::<TokenMetadata>() {
             return Ok((ext.name, ext.symbol, ext.uri));
         }
@@ -646,7 +565,12 @@ pub struct Lock<'info> {
     )]
     pub derivative_authority: UncheckedAccount<'info>,
     #[account(
-        mut,
+        init_if_needed,
+        payer = signer,
+        mint::decimals = token_mint.decimals,
+        mint::authority = derivative_authority,
+        mint::freeze_authority = derivative_authority,
+        mint::token_program = token_program,
         seeds = [DERIVATIVE_MINT_STATIC_SEED, token_mint.key().as_ref()],
         bump
     )]
