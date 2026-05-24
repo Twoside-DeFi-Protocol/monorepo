@@ -23,8 +23,6 @@ import { user } from "../env";
       .initializeProgram(developer, founder)
       .accounts({
         signer: user.publicKey,
-        globalInfo: globalInfoPDA,
-        systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([user])
       .rpc();

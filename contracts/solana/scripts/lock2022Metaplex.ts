@@ -109,34 +109,22 @@ import { user } from "../env";
     console.log(`\nLock Amount: 10 (${lockAmount} raw)`);
 
     // Prepare accounts
-    const accounts = {
-      systemProgram: anchor.web3.SystemProgram.programId,
-      tokenProgram: tokenProgramId,
-      associatedTokenProgram: splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
-      mplTokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
-      sysvarInstructions: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
-      rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      tokenMint: tokenMint2022Metaplex,
-      // For this script, we explicitly pass the Metaplex metadata PDA
-      tokenMetadata: tokenMetadataPDA,
-      derivativeAuthority: derivativeAuthority,
-      derivativeMint: derivativeMint,
-      derivativeMetadata: derivativeMetadata,
-      signer: user.publicKey,
-      signerTokenAta: userAta2022Metaplex,
-      signerDerivativeAta: userDerivativeAta2022Metaplex,
-      tokenInfo: tokenInfo,
-      vaultAuthority: vaultAuthority,
-      vaultAta: vaultAta,
-      globalInfo: globalInfo,
-      founderAta: founderAta,
-      developerAta: developerAta,
-    };
+    const accounts = {};
 
     console.log("\nSending Lock Transaction...");
     const sig = await program.methods
       .lock(new anchor.BN(lockAmount))
-      .accounts(accounts)
+      .accounts({
+        tokenProgram: tokenProgramId,
+        mplTokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+        tokenMint: tokenMint2022Metaplex,
+        // For this script, we explicitly pass the Metaplex metadata PDA
+        tokenMetadata: tokenMetadataPDA,
+        signer: user.publicKey,
+        signerTokenAta: userAta2022Metaplex,
+        founderAta: founderAta,
+        developerAta: developerAta,
+      })
       .signers([user])
       .rpc();
 

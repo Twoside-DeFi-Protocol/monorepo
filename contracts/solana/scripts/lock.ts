@@ -107,34 +107,19 @@ import { user } from "../env";
     const lockAmount = 10 * 10 ** tokenDecimals;
     console.log(`\nLock Amount: 10 (${lockAmount} raw)`);
 
-    // Prepare accounts
-    const accounts = {
-      systemProgram: anchor.web3.SystemProgram.programId,
-      tokenProgram: tokenProgramId,
-      associatedTokenProgram: splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
-      mplTokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
-      sysvarInstructions: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
-      rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      tokenMint: tokenMint,
-      tokenMetadata: tokenMetadataPDA,
-      derivativeAuthority: derivativeAuthority,
-      derivativeMint: derivativeMint,
-      derivativeMetadata: derivativeMetadata,
-      signer: user.publicKey,
-      signerTokenAta: userAta,
-      signerDerivativeAta: userDerivativeAta,
-      tokenInfo: tokenInfo,
-      vaultAuthority: vaultAuthority,
-      vaultAta: vaultAta,
-      globalInfo: globalInfo,
-      founderAta: founderAta,
-      developerAta: developerAta,
-    };
-
     console.log("\nSending Lock Transaction...");
     const sig = await program.methods
       .lock(new anchor.BN(lockAmount))
-      .accounts(accounts)
+      .accounts({
+        tokenProgram: tokenProgramId,
+        mplTokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+        tokenMint: tokenMint,
+        tokenMetadata: tokenMetadataPDA,
+        signer: user.publicKey,
+        signerTokenAta: userAta,
+        founderAta: founderAta,
+        developerAta: developerAta,
+      })
       .signers([user])
       .rpc();
 

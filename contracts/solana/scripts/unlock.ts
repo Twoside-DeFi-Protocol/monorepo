@@ -109,7 +109,14 @@ import { user } from "../env";
     console.log("\nSending Unlock Transaction...");
     const sig = await program.methods
       .unlock(new anchor.BN(unlockAmount))
-      .accounts(accounts)
+      .accounts({
+        tokenProgram: tokenProgramId,
+        tokenMint: tokenMint,
+        signer: user.publicKey,
+        signerTokenAta: userAta,
+        founderAta: founderAta,
+        developerAta: developerAta,
+      })
       .signers([user])
       .rpc();
 

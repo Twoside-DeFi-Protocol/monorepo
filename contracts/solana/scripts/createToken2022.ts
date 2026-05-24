@@ -45,7 +45,7 @@ import { user } from "../env";
     // 2. Calculate Space and Rent
     console.log("\n1. Calculating Space and Rent for Token-2022 Mint...");
     const extensions = [ExtensionType.MetadataPointer];
-    const mintLen = getMintLen(extensions);
+    const mintLen = getMintLen([ExtensionType.MetadataPointer]);
     const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
     const lamports = await connection.getMinimumBalanceForRentExemption(
       mintLen + metadataLen,
@@ -59,7 +59,7 @@ import { user } from "../env";
       SystemProgram.createAccount({
         fromPubkey: user.publicKey,
         newAccountPubkey: mint,
-        space: mintLen + metadataLen,
+        space: mintLen,
         lamports,
         programId: TOKEN_2022_PROGRAM_ID,
       }),
@@ -71,14 +71,14 @@ import { user } from "../env";
       ),
       createInitializeMintInstruction(
         mint,
-        9, // decimals
+        9,
         user.publicKey,
-        user.publicKey, // freeze authority
+        user.publicKey,
         TOKEN_2022_PROGRAM_ID,
       ),
       createInitializeInstruction({
         programId: TOKEN_2022_PROGRAM_ID,
-        mint: mint,
+        mint,
         metadata: mint,
         name: metadata.name,
         symbol: metadata.symbol,

@@ -13,7 +13,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 export const connection = new Connection(
-  "https://api.mainnet.solana.com",
+  "https://api.devnet.solana.com",
   "confirmed",
 );
 
@@ -21,9 +21,15 @@ export const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
   "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
 );
 
-export const programId = new PublicKey(
+export const mainnetProgramId = new PublicKey(
   "Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW",
 );
+
+export const devnetProgramId = new PublicKey(
+  "Ga1AiRNNaLTqrzCehLweLRpYN2JzdTr4GwAqy6pmc4UW",
+);
+
+export const programId = devnetProgramId;
 
 export const developer = new PublicKey(
   "Hk7jimSG5utdV3ytWnZyBBfEyunauvE6XKqT3T5PCCbK",
@@ -47,7 +53,7 @@ export interface SharedState {
 const STATE_FILE_PATH = path.join(__dirname, "state.json");
 
 const defaultState: SharedState = {
-  tokenMint: "9vmCzsKtNxkj1Fn92fnrmjkXaipVidcnsjuT2baai1h1",
+  tokenMint: "4RvtN6X8fmpyukKBCGCAdkzumE5SxZAATnrLJUKqP33N",
   tokenMint2022: "9vmCzsKtNxkj1Fn92fnrmjkXaipVidcnsjuT2baai1h1",
   tokenMint2022Metaplex: "9vmCzsKtNxkj1Fn92fnrmjkXaipVidcnsjuT2baai1h1",
   derivativeMint: "ETaXwgKrv4hEM491fVX675UWpRhTV2UE66WK8jhAXKYR",
