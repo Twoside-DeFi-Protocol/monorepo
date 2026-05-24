@@ -67,6 +67,9 @@ class Setup {
   // Track Token-2022 mint
   public token2022Mint: anchor.web3.PublicKey = null;
 
+  // Track Token-2022 Metaplex mint
+  public token2022MetaplexMint: anchor.web3.PublicKey = null;
+
   private constructor() {}
 
   public static getInstance(): Setup {

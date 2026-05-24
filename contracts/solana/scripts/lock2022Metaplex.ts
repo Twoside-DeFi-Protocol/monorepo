@@ -5,10 +5,10 @@ import {
   connection,
   program,
   programId,
-  tokenMint,
+  tokenMint2022Metaplex,
   tokenDecimals,
-  userAta,
-  userDerivativeAta,
+  userAta2022Metaplex,
+  userDerivativeAta2022Metaplex,
   developer,
   founder,
   TOKEN_METADATA_PROGRAM_ID,
@@ -17,20 +17,20 @@ import { user } from "../env";
 
 (async function main() {
   try {
-    const tokenProgramId = splToken.TOKEN_PROGRAM_ID;
+    const tokenProgramId = splToken.TOKEN_2022_PROGRAM_ID;
 
     console.log("==========================================");
-    console.log("  LOCKING TOKENS                          ");
+    console.log("  LOCKING TOKEN-2022 WITH METAPLEX METADATA");
     console.log("==========================================");
-    console.log(`Current Mint: ${tokenMint.toBase58()}`);
+    console.log(`Current Mint: ${tokenMint2022Metaplex.toBase58()}`);
     console.log(`Token Decimals: ${tokenDecimals}`);
-    console.log(`Token Standard: STANDARD`);
+    console.log(`Token Standard: TOKEN-2022 (METAPLEX)`);
     console.log(`Token Program: ${tokenProgramId.toBase58()}`);
 
     // 1. Derive ATAs for developer and founder
     console.log("\n1. Deriving developer & founder ATAs...");
     const developerAta = splToken.getAssociatedTokenAddressSync(
-      tokenMint,
+      tokenMint2022Metaplex,
       developer,
       false,
       tokenProgramId,
@@ -38,7 +38,7 @@ import { user } from "../env";
     console.log(`Developer ATA: ${developerAta.toBase58()}`);
 
     const founderAta = splToken.getAssociatedTokenAddressSync(
-      tokenMint,
+      tokenMint2022Metaplex,
       founder,
       false,
       tokenProgramId,
@@ -51,19 +51,20 @@ import { user } from "../env";
       [
         Buffer.from("metadata"),
         TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-        tokenMint.toBuffer(),
+        tokenMint2022Metaplex.toBuffer(),
       ],
       TOKEN_METADATA_PROGRAM_ID,
     );
+    console.log(`Token Metadata PDA: ${tokenMetadataPDA.toBase58()}`);
 
     const [derivativeAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from("derivative_authority"), tokenMint.toBuffer()],
+      [Buffer.from("derivative_authority"), tokenMint2022Metaplex.toBuffer()],
       programId,
     );
     console.log(`Derivative Authority PDA: ${derivativeAuthority.toBase58()}`);
 
     const [derivativeMint] = PublicKey.findProgramAddressSync(
-      [Buffer.from("derivative_mint"), tokenMint.toBuffer()],
+      [Buffer.from("derivative_mint"), tokenMint2022Metaplex.toBuffer()],
       programId,
     );
     console.log(`Derivative Mint PDA: ${derivativeMint.toBase58()}`);
@@ -79,19 +80,19 @@ import { user } from "../env";
     console.log(`Derivative Metadata PDA: ${derivativeMetadata.toBase58()}`);
 
     const [tokenInfo] = PublicKey.findProgramAddressSync(
-      [Buffer.from("token_info"), tokenMint.toBuffer()],
+      [Buffer.from("token_info"), tokenMint2022Metaplex.toBuffer()],
       programId,
     );
     console.log(`Token Info PDA: ${tokenInfo.toBase58()}`);
 
     const [vaultAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from("vault_authority"), tokenMint.toBuffer()],
+      [Buffer.from("vault_authority"), tokenMint2022Metaplex.toBuffer()],
       programId,
     );
     console.log(`Vault Authority PDA: ${vaultAuthority.toBase58()}`);
 
     const vaultAta = splToken.getAssociatedTokenAddressSync(
-      tokenMint,
+      tokenMint2022Metaplex,
       vaultAuthority,
       true,
       tokenProgramId,
@@ -115,14 +116,15 @@ import { user } from "../env";
       mplTokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
       sysvarInstructions: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      tokenMint: tokenMint,
+      tokenMint: tokenMint2022Metaplex,
+      // For this script, we explicitly pass the Metaplex metadata PDA
       tokenMetadata: tokenMetadataPDA,
       derivativeAuthority: derivativeAuthority,
       derivativeMint: derivativeMint,
       derivativeMetadata: derivativeMetadata,
       signer: user.publicKey,
-      signerTokenAta: userAta,
-      signerDerivativeAta: userDerivativeAta,
+      signerTokenAta: userAta2022Metaplex,
+      signerDerivativeAta: userDerivativeAta2022Metaplex,
       tokenInfo: tokenInfo,
       vaultAuthority: vaultAuthority,
       vaultAta: vaultAta,
@@ -144,7 +146,7 @@ import { user } from "../env";
     console.log("==========================================");
   } catch (e: any) {
     // ❌ Fatal error occurred
-    console.error("❌ Fatal error during lock:", e);
+    console.error("❌ Fatal error during lock2022Metaplex:", e);
     process.exit(1);
   }
 })();

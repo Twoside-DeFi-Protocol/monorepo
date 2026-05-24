@@ -168,10 +168,9 @@ import { user } from "../env";
     // 7. Save new state to state.json
     console.log("\n5. Saving updated state to state.json...");
     saveState({
-      tokenMint: mint.toBase58(),
-      derivativeMint: derivativeMintPDA.toBase58(),
+      tokenMint2022: mint.toBase58(),
+      derivativeMint2022: derivativeMintPDA.toBase58(),
       tokenDecimals: 9,
-      tokenStandard: "2022",
     });
 
     console.log("\n==========================================");

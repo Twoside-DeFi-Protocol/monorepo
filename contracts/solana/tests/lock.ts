@@ -470,4 +470,161 @@ describe("Token Locking Suite 🔒", () => {
       throw err;
     }
   });
+
+  // ==========================================
+  // TEST CASE 3: Token-2022 Lock with Metaplex Metadata
+  // ==========================================
+  it("✅ Token-2022 Lock with Metaplex Metadata", async () => {
+    console.log(
+      "\n--- Starting Test: Token-2022 Lock with Metaplex Metadata ---",
+    );
+    try {
+      // 1. Create Token-2022 mint without metadata extensions
+      const tokenMint = await splToken.createMint(
+        setup.connection,
+        setup.payer,
+        setup.payer.publicKey,
+        setup.payer.publicKey,
+        tokenDecimals,
+        undefined,
+        { commitment: "confirmed" },
+        splToken.TOKEN_2022_PROGRAM_ID,
+      );
+      const tokenAccount = await splToken.getMint(
+        setup.connection,
+        tokenMint,
+        "confirmed",
+        splToken.TOKEN_2022_PROGRAM_ID,
+      );
+      const { pda: derivativeMint } = setup.getDerivativeMint(tokenMint);
+      setup.token2022MetaplexMint = tokenMint;
+
+      assert(
+        tokenAccount.isInitialized == true,
+        "❌ Token-2022 Mint Not Initialized",
+      );
+      assert(
+        tokenAccount.decimals == tokenDecimals,
+        "❌ Wrong Token Decimals Set",
+      );
+
+      // 2. Deploy Metaplex metadata
+      const { pda: tokenMetadataPDA } = setup.getTokenMetadataPDA(tokenMint);
+      const { pda: derivativeMetadataPDA } =
+        setup.getTokenMetadataPDA(derivativeMint);
+
+      await setup.deployMetaplexMetadata(
+        tokenMetadata.name,
+        tokenMetadata.symbol,
+        tokenMetadata.uri,
+        tokenMint,
+      );
+
+      // 3. Create ATAs using Token-2022 Program
+      const userTokenAta = await setup.getTokenATA(
+        tokenMint,
+        setup.user.publicKey,
+        splToken.TOKEN_2022_PROGRAM_ID,
+      );
+      const { ata: vaultAtaPDA } = setup.getTokenVault(
+        tokenMint,
+        splToken.TOKEN_2022_PROGRAM_ID,
+      );
+      const founderAta = await setup.getTokenATA(
+        tokenMint,
+        setup.founder.publicKey,
+        splToken.TOKEN_2022_PROGRAM_ID,
+      );
+      const developerAta = await setup.getTokenATA(
+        tokenMint,
+        setup.developer.publicKey,
+        splToken.TOKEN_2022_PROGRAM_ID,
+      );
+
+      // 4. Mint tokens to user using Token-2022
+      await splToken.mintTo(
+        setup.connection,
+        setup.payer,
+        tokenMint,
+        userTokenAta.address,
+        setup.payer.publicKey,
+        initialBalance,
+        [],
+        { commitment: "confirmed" },
+        splToken.TOKEN_2022_PROGRAM_ID,
+      );
+
+      // 5. Send Lock Transaction with Metaplex metadata PDA
+      const tx = await setup.program.methods
+        .lock(new anchor.BN(lockAmount))
+        .accounts({
+          tokenMint: tokenMint,
+          tokenMetadata: tokenMetadataPDA, // ✅ Pass Metaplex metadata PDA
+          signer: setup.user.publicKey,
+          signerTokenAta: userTokenAta.address,
+          developerAta: developerAta.address,
+          founderAta: founderAta.address,
+          mplTokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+          tokenProgram: splToken.TOKEN_2022_PROGRAM_ID, // ✅ Specify Token-2022 Program
+        })
+        .signers([setup.user])
+        .rpc();
+      console.log(
+        `✅ Lock Token-2022 with Metaplex Metadata Tx Signature: ${tx}`,
+      );
+
+      // 6. Assertions on program state & balances
+      const { pda: tokenInfoPDA } = setup.getTokenInfoPDA(tokenMint);
+      const tokenInfo =
+        await setup.program.account.tokenInfo.fetch(tokenInfoPDA);
+
+      assert(tokenInfo.isInitialized, "❌ Token Info Not Initialized");
+      assert(
+        tokenInfo.originalMint.toString() == tokenMint.toString(),
+        "❌ Wrong Token Mint Set",
+      );
+      assert(
+        tokenInfo.derivativeMint.toString() == derivativeMint.toString(),
+        "❌ Wrong Derivative Mint Set",
+      );
+
+      const derivativeMintAccount = await splToken.getMint(
+        setup.connection,
+        derivativeMint,
+        "confirmed",
+        splToken.TOKEN_2022_PROGRAM_ID,
+      );
+      assert(
+        derivativeMintAccount.isInitialized == true,
+        "❌ Derivative Mint Not Initialized",
+      );
+
+      const { pda: derivativeAuthorityPDA } =
+        setup.getDerivativeAuthority(tokenMint);
+      assert(
+        derivativeMintAccount.mintAuthority.toString() ==
+          derivativeAuthorityPDA.toString(),
+        "❌ Wrong Derivative Mint Authority",
+      );
+
+      console.log(
+        "✅ Token-2022 Lock with Metaplex Metadata verification complete and correct.",
+      );
+    } catch (err: any) {
+      console.error(
+        "❌ Caught error during Token-2022 Lock with Metaplex Metadata:",
+        err,
+      );
+      const signature =
+        err?.signature ?? err?.txSig ?? err?.transactionSignature;
+      if (typeof signature === "string") {
+        const logs = await fetchLogsFromSignature(
+          setup.program.provider.connection,
+          signature,
+        );
+        console.log("Transaction logs:", logs);
+      }
+      throw err;
+    }
+  });
 });

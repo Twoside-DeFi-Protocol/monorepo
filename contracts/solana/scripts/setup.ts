@@ -36,25 +36,34 @@ export const founder = new PublicKey(
 // Shared State definition
 export interface SharedState {
   tokenMint: string;
+  tokenMint2022: string;
+  tokenMint2022Metaplex: string;
   derivativeMint: string;
+  derivativeMint2022: string;
+  derivativeMint2022Metaplex: string;
   tokenDecimals: number;
-  tokenStandard: "standard" | "2022";
 }
 
 const STATE_FILE_PATH = path.join(__dirname, "state.json");
 
 const defaultState: SharedState = {
   tokenMint: "9vmCzsKtNxkj1Fn92fnrmjkXaipVidcnsjuT2baai1h1",
+  tokenMint2022: "9vmCzsKtNxkj1Fn92fnrmjkXaipVidcnsjuT2baai1h1",
+  tokenMint2022Metaplex: "9vmCzsKtNxkj1Fn92fnrmjkXaipVidcnsjuT2baai1h1",
   derivativeMint: "ETaXwgKrv4hEM491fVX675UWpRhTV2UE66WK8jhAXKYR",
+  derivativeMint2022: "ETaXwgKrv4hEM491fVX675UWpRhTV2UE66WK8jhAXKYR",
+  derivativeMint2022Metaplex: "ETaXwgKrv4hEM491fVX675UWpRhTV2UE66WK8jhAXKYR",
   tokenDecimals: 9,
-  tokenStandard: "standard",
 };
 
 let loadedState = defaultState;
 // ✅ Check if shared state file exists
 if (fs.existsSync(STATE_FILE_PATH)) {
   try {
-    loadedState = JSON.parse(fs.readFileSync(STATE_FILE_PATH, "utf-8"));
+    loadedState = {
+      ...defaultState,
+      ...JSON.parse(fs.readFileSync(STATE_FILE_PATH, "utf-8")),
+    };
     console.log(
       `✅ [setup.ts] Loaded shared state from state.json:`,
       loadedState,
@@ -72,26 +81,60 @@ if (fs.existsSync(STATE_FILE_PATH)) {
 }
 
 export const tokenMint = new PublicKey(loadedState.tokenMint);
-export const derivativeMint = new PublicKey(loadedState.derivativeMint);
-export const tokenDecimals = loadedState.tokenDecimals;
-export const tokenStandard = loadedState.tokenStandard;
+export const tokenMint2022 = new PublicKey(loadedState.tokenMint2022);
+export const tokenMint2022Metaplex = new PublicKey(
+  loadedState.tokenMint2022Metaplex,
+);
 
-export const tokenProgramId =
-  tokenStandard === "2022" ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
+export const derivativeMint = new PublicKey(loadedState.derivativeMint);
+export const derivativeMint2022 = new PublicKey(loadedState.derivativeMint2022);
+export const derivativeMint2022Metaplex = new PublicKey(
+  loadedState.derivativeMint2022Metaplex,
+);
+
+export const tokenDecimals = loadedState.tokenDecimals;
 
 // Derive user ATAs dynamically based on standard
 export const userAta = getAssociatedTokenAddressSync(
   tokenMint,
   user.publicKey,
   false,
-  tokenProgramId,
+  TOKEN_PROGRAM_ID,
 );
 
 export const userDerivativeAta = getAssociatedTokenAddressSync(
   derivativeMint,
   user.publicKey,
   false,
-  tokenProgramId,
+  TOKEN_PROGRAM_ID,
+);
+
+export const userAta2022 = getAssociatedTokenAddressSync(
+  tokenMint2022,
+  user.publicKey,
+  false,
+  TOKEN_2022_PROGRAM_ID,
+);
+
+export const userDerivativeAta2022 = getAssociatedTokenAddressSync(
+  derivativeMint2022,
+  user.publicKey,
+  false,
+  TOKEN_2022_PROGRAM_ID,
+);
+
+export const userAta2022Metaplex = getAssociatedTokenAddressSync(
+  tokenMint2022Metaplex,
+  user.publicKey,
+  false,
+  TOKEN_2022_PROGRAM_ID,
+);
+
+export const userDerivativeAta2022Metaplex = getAssociatedTokenAddressSync(
+  derivativeMint2022Metaplex,
+  user.publicKey,
+  false,
+  TOKEN_2022_PROGRAM_ID,
 );
 
 // Derive token metadata PDA if standard (Metaplex)
@@ -104,14 +147,32 @@ export const [tokenMetaplexAccount] = PublicKey.findProgramAddressSync(
   TOKEN_METADATA_PROGRAM_ID,
 );
 
+export const [tokenMetaplexAccount2022Metaplex] =
+  PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("metadata"),
+      TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      tokenMint2022Metaplex.toBuffer(),
+    ],
+    TOKEN_METADATA_PROGRAM_ID,
+  );
+
 // Helper function to save new state
 export function saveState(newState: Partial<SharedState>) {
   const finalState = {
-    tokenMint: newState.tokenMint ?? tokenMint.toBase58(),
-    derivativeMint: newState.derivativeMint ?? derivativeMint.toBase58(),
-    tokenDecimals: newState.tokenDecimals ?? tokenDecimals,
-    tokenStandard: newState.tokenStandard ?? tokenStandard,
+    tokenMint: newState.tokenMint ?? loadedState.tokenMint,
+    tokenMint2022: newState.tokenMint2022 ?? loadedState.tokenMint2022,
+    tokenMint2022Metaplex:
+      newState.tokenMint2022Metaplex ?? loadedState.tokenMint2022Metaplex,
+    derivativeMint: newState.derivativeMint ?? loadedState.derivativeMint,
+    derivativeMint2022:
+      newState.derivativeMint2022 ?? loadedState.derivativeMint2022,
+    derivativeMint2022Metaplex:
+      newState.derivativeMint2022Metaplex ??
+      loadedState.derivativeMint2022Metaplex,
+    tokenDecimals: newState.tokenDecimals ?? loadedState.tokenDecimals,
   };
+  loadedState = finalState;
   fs.writeFileSync(
     STATE_FILE_PATH,
     JSON.stringify(finalState, null, 2),

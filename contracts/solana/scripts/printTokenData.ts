@@ -3,9 +3,17 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import {
   connection,
   tokenMint,
+  tokenMint2022,
+  tokenMint2022Metaplex,
   derivativeMint,
-  tokenStandard,
-  tokenProgramId,
+  derivativeMint2022,
+  derivativeMint2022Metaplex,
+  userAta,
+  userDerivativeAta,
+  userAta2022,
+  userDerivativeAta2022,
+  userAta2022Metaplex,
+  userDerivativeAta2022Metaplex,
   developer,
   founder,
 } from "./setup";
@@ -30,81 +38,103 @@ async function safeGetBalance(
     console.log("==========================================");
     console.log("  PRINTING TOKEN DATA                     ");
     console.log("==========================================");
+
+    console.log("\n--- 1. STANDARD SPL TOKEN ---");
     console.log(`Original Mint: ${tokenMint.toBase58()}`);
     console.log(`Derivative Mint: ${derivativeMint.toBase58()}`);
-    console.log(`Token Standard: ${tokenStandard.toUpperCase()}`);
-    console.log(`Token Program ID: ${tokenProgramId.toBase58()}`);
-
-    // Derive Original ATAs
-    const userOrigAta = splToken.getAssociatedTokenAddressSync(
-      tokenMint,
-      user.publicKey,
-      false,
-      tokenProgramId,
-    );
-    const developerOrigAta = splToken.getAssociatedTokenAddressSync(
+    const devAtaStandard = splToken.getAssociatedTokenAddressSync(
       tokenMint,
       developer,
       false,
-      tokenProgramId,
+      splToken.TOKEN_PROGRAM_ID,
     );
-    const founderOrigAta = splToken.getAssociatedTokenAddressSync(
+    const founderAtaStandard = splToken.getAssociatedTokenAddressSync(
       tokenMint,
       founder,
       false,
-      tokenProgramId,
+      splToken.TOKEN_PROGRAM_ID,
+    );
+    console.log(`User original ATA: ${userAta.toBase58()}`);
+    console.log(
+      `User original balance: ${await safeGetBalance(connection, userAta)}`,
+    );
+    console.log(`User derivative ATA: ${userDerivativeAta.toBase58()}`);
+    console.log(
+      `User derivative balance: ${await safeGetBalance(connection, userDerivativeAta)}`,
+    );
+    console.log(`Developer ATA: ${devAtaStandard.toBase58()}`);
+    console.log(
+      `Developer balance: ${await safeGetBalance(connection, devAtaStandard)}`,
+    );
+    console.log(`Founder ATA: ${founderAtaStandard.toBase58()}`);
+    console.log(
+      `Founder balance: ${await safeGetBalance(connection, founderAtaStandard)}`,
     );
 
-    // Derive Derivative ATAs
-    const userDerivAta = splToken.getAssociatedTokenAddressSync(
-      derivativeMint,
-      user.publicKey,
-      false,
-      tokenProgramId,
-    );
-    const developerDerivAta = splToken.getAssociatedTokenAddressSync(
-      derivativeMint,
+    console.log("\n--- 2. TOKEN-2022 (EXTENSION METADATA) ---");
+    console.log(`Original Mint: ${tokenMint2022.toBase58()}`);
+    console.log(`Derivative Mint: ${derivativeMint2022.toBase58()}`);
+    const devAta2022 = splToken.getAssociatedTokenAddressSync(
+      tokenMint2022,
       developer,
       false,
-      tokenProgramId,
+      splToken.TOKEN_2022_PROGRAM_ID,
     );
-    const founderDerivAta = splToken.getAssociatedTokenAddressSync(
-      derivativeMint,
+    const founderAta2022 = splToken.getAssociatedTokenAddressSync(
+      tokenMint2022,
       founder,
       false,
-      tokenProgramId,
+      splToken.TOKEN_2022_PROGRAM_ID,
+    );
+    console.log(`User original ATA: ${userAta2022.toBase58()}`);
+    console.log(
+      `User original balance: ${await safeGetBalance(connection, userAta2022)}`,
+    );
+    console.log(`User derivative ATA: ${userDerivativeAta2022.toBase58()}`);
+    console.log(
+      `User derivative balance: ${await safeGetBalance(connection, userDerivativeAta2022)}`,
+    );
+    console.log(`Developer ATA: ${devAta2022.toBase58()}`);
+    console.log(
+      `Developer balance: ${await safeGetBalance(connection, devAta2022)}`,
+    );
+    console.log(`Founder ATA: ${founderAta2022.toBase58()}`);
+    console.log(
+      `Founder balance: ${await safeGetBalance(connection, founderAta2022)}`,
     );
 
-    console.log("\n--- ORIGINAL TOKENS ---");
-    console.log(`User original ATA: ${userOrigAta.toBase58()}`);
-    console.log(
-      `User original balance: ${await safeGetBalance(connection, userOrigAta)}`,
+    console.log("\n--- 3. TOKEN-2022 (METAPLEX METADATA) ---");
+    console.log(`Original Mint: ${tokenMint2022Metaplex.toBase58()}`);
+    console.log(`Derivative Mint: ${derivativeMint2022Metaplex.toBase58()}`);
+    const devAta2022Metaplex = splToken.getAssociatedTokenAddressSync(
+      tokenMint2022Metaplex,
+      developer,
+      false,
+      splToken.TOKEN_2022_PROGRAM_ID,
     );
-
-    console.log(`Developer original ATA: ${developerOrigAta.toBase58()}`);
-    console.log(
-      `Developer original balance: ${await safeGetBalance(connection, developerOrigAta)}`,
+    const founderAta2022Metaplex = splToken.getAssociatedTokenAddressSync(
+      tokenMint2022Metaplex,
+      founder,
+      false,
+      splToken.TOKEN_2022_PROGRAM_ID,
     );
-
-    console.log(`Founder original ATA: ${founderOrigAta.toBase58()}`);
+    console.log(`User original ATA: ${userAta2022Metaplex.toBase58()}`);
     console.log(
-      `Founder original balance: ${await safeGetBalance(connection, founderOrigAta)}`,
+      `User original balance: ${await safeGetBalance(connection, userAta2022Metaplex)}`,
     );
-
-    console.log("\n--- DERIVATIVE TOKENS ---");
-    console.log(`User derivative ATA: ${userDerivAta.toBase58()}`);
     console.log(
-      `User derivative balance: ${await safeGetBalance(connection, userDerivAta)}`,
+      `User derivative ATA: ${userDerivativeAta2022Metaplex.toBase58()}`,
     );
-
-    console.log(`Developer derivative ATA: ${developerDerivAta.toBase58()}`);
     console.log(
-      `Developer derivative balance: ${await safeGetBalance(connection, developerDerivAta)}`,
+      `User derivative balance: ${await safeGetBalance(connection, userDerivativeAta2022Metaplex)}`,
     );
-
-    console.log(`Founder derivative ATA: ${founderDerivAta.toBase58()}`);
+    console.log(`Developer ATA: ${devAta2022Metaplex.toBase58()}`);
     console.log(
-      `Founder derivative balance: ${await safeGetBalance(connection, founderDerivAta)}`,
+      `Developer balance: ${await safeGetBalance(connection, devAta2022Metaplex)}`,
+    );
+    console.log(`Founder ATA: ${founderAta2022Metaplex.toBase58()}`);
+    console.log(
+      `Founder balance: ${await safeGetBalance(connection, founderAta2022Metaplex)}`,
     );
     console.log("==========================================");
   } catch (e: any) {

@@ -7,8 +7,6 @@ import {
   programId,
   tokenMint,
   tokenDecimals,
-  tokenStandard,
-  tokenProgramId,
   userAta,
   userDerivativeAta,
   developer,
@@ -18,12 +16,14 @@ import { user } from "../env";
 
 (async function main() {
   try {
+    const tokenProgramId = splToken.TOKEN_PROGRAM_ID;
+
     console.log("==========================================");
     console.log("  UNLOCKING TOKENS                        ");
     console.log("==========================================");
     console.log(`Current Mint: ${tokenMint.toBase58()}`);
     console.log(`Token Decimals: ${tokenDecimals}`);
-    console.log(`Token Standard: ${tokenStandard.toUpperCase()}`);
+    console.log(`Token Standard: STANDARD`);
     console.log(`Token Program: ${tokenProgramId.toBase58()}`);
 
     // 1. Derive ATAs for developer and founder
