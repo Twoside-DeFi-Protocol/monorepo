@@ -98,34 +98,18 @@ import { user } from "../env";
     const lockAmount = 10 * 10 ** tokenDecimals;
     console.log(`\nLock Amount: 10 (${lockAmount} raw)`);
 
-    // Prepare accounts
-    const accounts = {
-      systemProgram: anchor.web3.SystemProgram.programId,
-      tokenProgram: tokenProgramId,
-      associatedTokenProgram: splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
-      mplTokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
-      sysvarInstructions: anchor.web3.SYSVAR_INSTRUCTIONS_PUBKEY,
-      rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      tokenMint: tokenMint2022,
-      tokenMetadata: null, // Send null as this file assumes the token uses standard Token-2022 extensions
-      derivativeAuthority: derivativeAuthority,
-      derivativeMint: derivativeMint,
-      derivativeMetadata: derivativeMetadata,
-      signer: user.publicKey,
-      signerTokenAta: userAta2022,
-      signerDerivativeAta: userDerivativeAta2022,
-      tokenInfo: tokenInfo,
-      vaultAuthority: vaultAuthority,
-      vaultAta: vaultAta,
-      globalInfo: globalInfo,
-      founderAta: founderAta,
-      developerAta: developerAta,
-    };
-
     console.log("\nSending Lock Transaction...");
     const sig = await program.methods
-      .lock(new anchor.BN(lockAmount))
-      .accounts(accounts)
+      .lock2022(new anchor.BN(lockAmount))
+      .accounts({
+        tokenProgram: tokenProgramId,
+        tokenMint: tokenMint2022,
+        tokenMetadata: null, // Send null as this file assumes the token uses standard Token-2022 extensions
+        signer: user.publicKey,
+        signerTokenAta: userAta2022,
+        founderAta: founderAta,
+        developerAta: developerAta,
+      })
       .signers([user])
       .rpc();
 

@@ -87,29 +87,17 @@ import { user } from "../env";
     const unlockAmount = 5 * 10 ** tokenDecimals;
     console.log(`\nUnlock Amount: 5 (${unlockAmount} raw)`);
 
-    // Prepare accounts
-    const accounts = {
-      systemProgram: anchor.web3.SystemProgram.programId,
-      tokenProgram: tokenProgramId,
-      associatedTokenProgram: splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
-      tokenMint: tokenMint,
-      derivativeAuthority: derivativeAuthority,
-      derivativeMint: derivativeMint,
-      signer: user.publicKey,
-      signerTokenAta: userAta,
-      signerDerivativeAta: userDerivativeAta,
-      tokenInfo: tokenInfo,
-      vaultAuthority: vaultAuthority,
-      vaultAta: vaultAta,
-      globalInfo: globalInfo,
-      founderAta: founderAta,
-      developerAta: developerAta,
-    };
-
     console.log("\nSending Unlock Transaction...");
     const sig = await program.methods
       .unlock(new anchor.BN(unlockAmount))
-      .accounts(accounts)
+      .accounts({
+        tokenProgram: tokenProgramId,
+        tokenMint: tokenMint,
+        signer: user.publicKey,
+        signerTokenAta: userAta,
+        founderAta: founderAta,
+        developerAta: developerAta,
+      })
       .signers([user])
       .rpc();
 

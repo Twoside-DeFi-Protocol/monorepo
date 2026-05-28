@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{self, mint_to, transfer_checked, Mint, MintTo, Token, TokenAccount, TransferChecked},
+    token::{mint_to, transfer_checked, Mint, MintTo, Token, TokenAccount, TransferChecked},
     token_2022::Token2022,
     token_interface::{
         burn, token_metadata_initialize, transfer_checked as interface_transfer_checked, Burn,
