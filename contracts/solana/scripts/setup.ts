@@ -13,7 +13,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 export const connection = new Connection(
-  "https://api.mainnet.solana.com",
+  "https://api.devnet.solana.com",
   "confirmed",
 );
 
