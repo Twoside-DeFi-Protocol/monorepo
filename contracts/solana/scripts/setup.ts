@@ -42,6 +42,9 @@ export interface SharedState {
   derivativeMint2022: string;
   derivativeMint2022Metaplex: string;
   tokenDecimals: number;
+  tokenMintIteration: number;
+  tokenMint2022Iteration: number;
+  tokenMint2022MetaplexIteration: number;
 }
 
 const STATE_FILE_PATH = path.join(__dirname, "state.json");
@@ -54,6 +57,9 @@ const defaultState: SharedState = {
   derivativeMint2022: "ETaXwgKrv4hEM491fVX675UWpRhTV2UE66WK8jhAXKYR",
   derivativeMint2022Metaplex: "ETaXwgKrv4hEM491fVX675UWpRhTV2UE66WK8jhAXKYR",
   tokenDecimals: 9,
+  tokenMintIteration: 1,
+  tokenMint2022Iteration: 1,
+  tokenMint2022MetaplexIteration: 1,
 };
 
 let loadedState = defaultState;
@@ -85,6 +91,11 @@ export const tokenMint2022 = new PublicKey(loadedState.tokenMint2022);
 export const tokenMint2022Metaplex = new PublicKey(
   loadedState.tokenMint2022Metaplex,
 );
+
+export const tokenMintIteration = loadedState.tokenMintIteration;
+export const tokenMint2022Iteration = loadedState.tokenMint2022Iteration;
+export const tokenMint2022MetaplexIteration =
+  loadedState.tokenMint2022MetaplexIteration;
 
 export const derivativeMint = new PublicKey(loadedState.derivativeMint);
 export const derivativeMint2022 = new PublicKey(loadedState.derivativeMint2022);
@@ -171,6 +182,13 @@ export function saveState(newState: Partial<SharedState>) {
       newState.derivativeMint2022Metaplex ??
       loadedState.derivativeMint2022Metaplex,
     tokenDecimals: newState.tokenDecimals ?? loadedState.tokenDecimals,
+    tokenMintIteration:
+      newState.tokenMintIteration ?? loadedState.tokenMintIteration,
+    tokenMint2022Iteration:
+      newState.tokenMint2022Iteration ?? loadedState.tokenMint2022Iteration,
+    tokenMint2022MetaplexIteration:
+      newState.tokenMint2022MetaplexIteration ??
+      loadedState.tokenMint2022MetaplexIteration,
   };
   loadedState = finalState;
   fs.writeFileSync(

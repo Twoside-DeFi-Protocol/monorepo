@@ -1,18 +1,21 @@
+use anchor_lang::prelude::Rent;
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
 
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{mint_to, transfer_checked, Mint, MintTo, Token, TokenAccount, TransferChecked},
     token_2022::Token2022,
     token_interface::{
-        burn, token_metadata_initialize, transfer_checked as interface_transfer_checked, Burn,
-        Mint as InterfaceMint, TokenAccount as InterfaceTokenAccount, TokenInterface,
+        burn, mint_to as interface_mint_to, token_metadata_initialize,
+        transfer_checked as interface_transfer_checked, Burn, Mint as InterfaceMint,
+        MintTo as InterfaceMintTo, TokenAccount as InterfaceTokenAccount, TokenInterface,
         TokenMetadataInitialize, TransferChecked as InterfaceTransferChecked,
     },
 };
 
 use spl_token_2022::{
-    extension::{BaseStateWithExtensions, StateWithExtensions},
+    extension::{BaseStateWithExtensions, ExtensionType, StateWithExtensions},
     state::Mint as SplMint,
 };
 use spl_token_metadata_interface::state::TokenMetadata;
@@ -266,6 +269,7 @@ pub mod twoside {
     }
 
     pub fn lock2022(ctx: Context<Lock2022>, amount: u64) -> Result<()> {
+        let system_program = &ctx.accounts.system_program;
         let token_program = &ctx.accounts.token_program;
 
         let token_mint = &ctx.accounts.token_mint;
@@ -338,6 +342,37 @@ pub mod twoside {
                     String::from_utf8_lossy(&derivative_symbol.as_bytes()[..10]).to_string();
             }
 
+            let token_metadata = TokenMetadata {
+                update_authority: Some(derivative_authority.key()).try_into().unwrap(),
+                mint: derivative_mint.key(),
+                name: derivative_name.clone(),
+                symbol: derivative_symbol.clone(),
+                uri: token_uri.clone(),
+                additional_metadata: vec![],
+            };
+
+            let mint_space =
+                ExtensionType::try_calculate_account_len::<spl_token_2022::state::Mint>(&[
+                    ExtensionType::MetadataPointer,
+                ])
+                .unwrap();
+
+            let data_len = mint_space + token_metadata.tlv_size_of().unwrap();
+
+            let rent = Rent::get()?;
+            let minimum = rent.minimum_balance(data_len);
+
+            transfer(
+                CpiContext::new(
+                    system_program.to_account_info(),
+                    Transfer {
+                        from: signer.to_account_info(),
+                        to: derivative_mint.to_account_info(),
+                    },
+                ),
+                minimum,
+            )?;
+
             let cpi_accounts = TokenMetadataInitialize {
                 program_id: token_program.to_account_info(),
                 metadata: derivative_mint.to_account_info(),
@@ -346,7 +381,8 @@ pub mod twoside {
                 mint_authority: derivative_authority.to_account_info(),
             };
 
-            let cpi_ctx = CpiContext::new(token_program.to_account_info(), cpi_accounts);
+            let cpi_ctx = CpiContext::new(token_program.to_account_info(), cpi_accounts)
+                .with_signer(derivative_authority_slice);
 
             token_metadata_initialize(cpi_ctx, derivative_name, derivative_symbol, token_uri)?;
 
@@ -364,7 +400,7 @@ pub mod twoside {
             TwosideErrorCodes::InvalidDerivativeAddress
         );
 
-        let cpi_accounts = TransferChecked {
+        let cpi_accounts = InterfaceTransferChecked {
             mint: token_mint.to_account_info(),
             from: signer_token_ata.to_account_info(),
             to: vault_ata.to_account_info(),
@@ -372,7 +408,7 @@ pub mod twoside {
         };
         let cpi_program = token_program.to_account_info();
         let cpi_context = CpiContext::new(cpi_program, cpi_accounts);
-        transfer_checked(cpi_context, amount, token_mint.decimals)?;
+        interface_transfer_checked(cpi_context, amount, token_mint.decimals)?;
 
         let fee = calculate_fee(
             amount,
@@ -396,7 +432,7 @@ pub mod twoside {
             token_program,
         )?;
 
-        let cpi_accounts = MintTo {
+        let cpi_accounts = InterfaceMintTo {
             mint: derivative_mint.to_account_info(),
             to: signer_derivative_ata.to_account_info(),
             authority: derivative_authority.to_account_info(),
@@ -405,7 +441,7 @@ pub mod twoside {
         let cpi_ctx =
             CpiContext::new(cpi_program, cpi_accounts).with_signer(derivative_authority_slice);
 
-        mint_to(cpi_ctx, deducted_amount)?;
+        interface_mint_to(cpi_ctx, deducted_amount)?;
 
         emit!(AssetsLocked {
             account: signer.key(),

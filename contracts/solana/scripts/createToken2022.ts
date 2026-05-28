@@ -17,7 +17,14 @@ import {
   PublicKey,
   Keypair,
 } from "@solana/web3.js";
-import { connection, developer, founder, saveState, programId } from "./setup";
+import {
+  connection,
+  developer,
+  founder,
+  saveState,
+  programId,
+  tokenMint2022Iteration,
+} from "./setup";
 import { user } from "../env";
 
 (async function main() {
@@ -36,7 +43,7 @@ import { user } from "../env";
     // 1. Define Metadata
     const metadata = {
       mint: mint,
-      name: "Token 2022",
+      name: `T22 ${tokenMint2022Iteration}`,
       symbol: "T22",
       uri: "https://raw.githubusercontent.com/solana-developers/solana-web3-demo/main/metadata.json",
       additionalMetadata: [],
@@ -47,9 +54,9 @@ import { user } from "../env";
     const extensions = [ExtensionType.MetadataPointer];
     const mintLen = getMintLen(extensions);
     const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
-    const lamports = await connection.getMinimumBalanceForRentExemption(
-      mintLen + metadataLen,
-    );
+    const totalLen = mintLen + metadataLen;
+    const lamports =
+      await connection.getMinimumBalanceForRentExemption(totalLen);
 
     // 3. Build and send transaction to initialize Mint with Extensions
     console.log(
@@ -59,7 +66,7 @@ import { user } from "../env";
       SystemProgram.createAccount({
         fromPubkey: user.publicKey,
         newAccountPubkey: mint,
-        space: mintLen + metadataLen,
+        space: mintLen,
         lamports,
         programId: TOKEN_2022_PROGRAM_ID,
       }),
@@ -171,6 +178,7 @@ import { user } from "../env";
       tokenMint2022: mint.toBase58(),
       derivativeMint2022: derivativeMintPDA.toBase58(),
       tokenDecimals: 9,
+      tokenMint2022Iteration: tokenMint2022Iteration + 1,
     });
 
     console.log("\n==========================================");

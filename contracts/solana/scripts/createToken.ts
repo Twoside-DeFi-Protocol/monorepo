@@ -23,7 +23,14 @@ import {
   fromWeb3JsKeypair,
   fromWeb3JsPublicKey,
 } from "@metaplex-foundation/umi-web3js-adapters";
-import { connection, developer, founder, saveState, programId } from "./setup";
+import {
+  connection,
+  developer,
+  founder,
+  saveState,
+  programId,
+  tokenMintIteration,
+} from "./setup";
 import { user } from "../env";
 
 (async function main() {
@@ -85,8 +92,8 @@ import { user } from "../env";
     });
 
     const onChainData = {
-      name: "Standard SPL Token",
-      symbol: "SST",
+      name: `SPL ${tokenMintIteration}`,
+      symbol: "SPL",
       uri: "https://raw.githubusercontent.com/solana-developers/solana-web3-demo/main/metadata.json",
       sellerFeeBasisPoints: 0,
       creators: [
@@ -139,6 +146,7 @@ import { user } from "../env";
       tokenMint: mint.toBase58(),
       derivativeMint: derivativeMintPDA.toBase58(),
       tokenDecimals: 9,
+      tokenMintIteration: tokenMintIteration + 1,
     });
 
     console.log("\n==========================================");
