@@ -5,13 +5,13 @@ import { clearCachedTokenAta, getCachedTokenAta } from "../../lib/cache/ata";
 import { fetchTokenAta } from "../../services/query/ata";
 
 export function useTokenAta(
-  { tokenMint, owner }: UseTokenAtaParams,
+  { tokenMint, owner, tokenProgramId }: UseTokenAtaParams,
   options?: UseTokenAtaOptions,
 ) {
   const enabled = !!tokenMint && !!owner;
 
   const query = useQuery<AtaResponse, Error>({
-    queryKey: ["tokenAta", tokenMint, owner],
+    queryKey: ["tokenAta", tokenMint, owner, tokenProgramId],
     enabled,
     staleTime: Infinity,
     gcTime: 5 * 60_000,
@@ -19,25 +19,26 @@ export function useTokenAta(
       const parsedRequest = ataRequestSchema.safeParse({
         tokenMint,
         owner,
+        tokenProgramId,
       });
 
       if (!parsedRequest.success) {
         throw new Error("Invalid ATA request.");
       }
 
-      const cachedData = getCachedTokenAta(tokenMint, owner);
+      const cachedData = getCachedTokenAta(tokenMint, owner, tokenProgramId);
       if (cachedData.isCached && cachedData.value !== null) {
         return { data: cachedData.value };
       }
 
-      const result = await fetchTokenAta({ tokenMint, owner });
+      const result = await fetchTokenAta({ tokenMint, owner, tokenProgramId });
       return { data: result };
     },
     ...options,
   });
 
   const refresh = async () => {
-    clearCachedTokenAta(tokenMint, owner);
+    clearCachedTokenAta(tokenMint, owner, tokenProgramId);
     return query.refetch();
   };
 

@@ -5,6 +5,7 @@ import { AtaResponse } from "./ata";
 export type UseTokenAtaParams = {
   tokenMint: string;
   owner: string;
+  tokenProgramId?: string;
 };
 
 export type UseTokenAtaOptions = Omit<

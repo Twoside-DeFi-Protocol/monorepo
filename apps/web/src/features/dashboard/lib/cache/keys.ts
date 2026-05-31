@@ -15,9 +15,9 @@ export function getCacheTimestampKey(
   return `twoside:${blockchainParam}:${cacheKey}:timestamp`;
 }
 
-export function getAtaCacheKey(tokenMint: string, owner: string) {
+export function getAtaCacheKey(tokenMint: string, owner: string, tokenProgramId?: string) {
   const cachePrefix = getCacheKey("token_ata", "solana");
-  return `${cachePrefix}:${tokenMint.toLowerCase()}:${owner.toLowerCase()}`;
+  return `${cachePrefix}:${tokenMint.toLowerCase()}:${owner.toLowerCase()}${tokenProgramId ? `:${tokenProgramId.toLowerCase()}` : ""}`;
 }
 
 export function getDerivativeCacheKey(

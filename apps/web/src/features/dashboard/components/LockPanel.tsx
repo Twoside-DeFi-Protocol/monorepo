@@ -70,36 +70,49 @@ export default function LockPanel() {
   const [tokenDerivativeLoading, setTokenDerivativeLoading] =
     useState<boolean>(false);
 
-  const { refresh: refreshDerivativeData } = useTokenDerivative({
-    chain: selectedBlockchain,
-    tokenAddressOrMint:
-      selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
-  });
-
-  const {
-    data: founderAtaData,
-    refresh: refreshFounderAta,
-    isLoading: founderAtaLoading,
-  } = useTokenAta({
-    tokenMint: selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
-    owner: founderKey.toBase58(),
-  });
-
-  const {
-    data: developerAtaData,
-    refresh: refreshDeveloperAta,
-    isLoading: developerAtaLoading,
-  } = useTokenAta({
-    tokenMint: selectedTokens.lockToken[selectedBlockchain.id]?.address ?? "",
-    owner: developerKey.toBase58(),
-  });
-
   const lockToken = useMemo(() => {
     return selectedTokens.lockToken[selectedBlockchain.id];
   }, [selectedTokens.lockToken[selectedBlockchain.id]]);
 
   const { data: tokenProgramInfo, isLoading: tokenProgramLoading } = useTokenProgram(
     selectedBlockchain.id === "solana" ? lockToken?.address : undefined
+  );
+
+  const isSolana = selectedBlockchain.id === "solana";
+
+  const { refresh: refreshDerivativeData } = useTokenDerivative({
+    chain: selectedBlockchain,
+    tokenAddressOrMint: lockToken?.address ?? "",
+  });
+
+  const {
+    data: founderAtaData,
+    refresh: refreshFounderAta,
+    isLoading: founderAtaLoading,
+  } = useTokenAta(
+    {
+      tokenMint: lockToken?.address ?? "",
+      owner: founderKey.toBase58(),
+      tokenProgramId: tokenProgramInfo?.programId?.toBase58(),
+    },
+    {
+      enabled: (!isSolana || !!tokenProgramInfo) && !!lockToken?.address,
+    }
+  );
+
+  const {
+    data: developerAtaData,
+    refresh: refreshDeveloperAta,
+    isLoading: developerAtaLoading,
+  } = useTokenAta(
+    {
+      tokenMint: lockToken?.address ?? "",
+      owner: developerKey.toBase58(),
+      tokenProgramId: tokenProgramInfo?.programId?.toBase58(),
+    },
+    {
+      enabled: (!isSolana || !!tokenProgramInfo) && !!lockToken?.address,
+    }
   );
 
   const setTokenSelectorState = useSetAtom(tokenSelectorAtom);

@@ -5,9 +5,10 @@ export function cacheTokenAta(
   tokenMint: string,
   owner: string,
   value: CachedAtaValue,
+  tokenProgramId?: string,
 ) {
   try {
-    const cacheKey = getAtaCacheKey(tokenMint, owner);
+    const cacheKey = getAtaCacheKey(tokenMint, owner, tokenProgramId);
     localStorage.setItem(cacheKey, JSON.stringify(value));
   } catch (error) {
     console.error(error);
@@ -17,12 +18,13 @@ export function cacheTokenAta(
 export function getCachedTokenAta(
   tokenMint: string,
   owner: string,
+  tokenProgramId?: string,
 ): {
   isCached: boolean;
   value: CachedAtaValue | null;
 } {
   try {
-    const cacheKey = getAtaCacheKey(tokenMint, owner);
+    const cacheKey = getAtaCacheKey(tokenMint, owner, tokenProgramId);
     const cachedValue = localStorage.getItem(cacheKey);
     if (!cachedValue) {
       return { isCached: false, value: null };
@@ -46,9 +48,9 @@ export function getCachedTokenAta(
   }
 }
 
-export function clearCachedTokenAta(tokenMint: string, owner: string) {
+export function clearCachedTokenAta(tokenMint: string, owner: string, tokenProgramId?: string) {
   try {
-    const cacheKey = getAtaCacheKey(tokenMint, owner);
+    const cacheKey = getAtaCacheKey(tokenMint, owner, tokenProgramId);
     localStorage.removeItem(cacheKey);
   } catch (error) {
     console.error(error);

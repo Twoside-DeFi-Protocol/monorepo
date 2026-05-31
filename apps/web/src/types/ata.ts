@@ -5,8 +5,9 @@ export const ataRequestSchema = z
   .object({
     tokenMint: z.string().trim().min(1),
     owner: z.string().trim().min(1),
+    tokenProgramId: z.string().trim().optional(),
   })
-  .superRefine(({ tokenMint, owner }, ctx) => {
+  .superRefine(({ tokenMint, owner, tokenProgramId }, ctx) => {
     try {
       new PublicKey(tokenMint);
     } catch {
@@ -25,6 +26,18 @@ export const ataRequestSchema = z
         path: ["owner"],
         message: "Invalid Solana owner address.",
       });
+    }
+
+    if (tokenProgramId) {
+      try {
+        new PublicKey(tokenProgramId);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["tokenProgramId"],
+          message: "Invalid Solana token program ID.",
+        });
+      }
     }
   });
 

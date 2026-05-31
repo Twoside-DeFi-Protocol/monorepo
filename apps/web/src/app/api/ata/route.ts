@@ -16,7 +16,7 @@ async function getCachedData(cacheKey: string): Promise<AtaResponse | null> {
     const cached = await redis.get(cacheKey);
     const parsed = ataResponseSchema.safeParse(cached);
     if (parsed.success) return parsed.data;
-  } catch {}
+  } catch { }
   return null;
 }
 
@@ -26,15 +26,16 @@ export async function GET(
   const parsedRequest = ataRequestSchema.safeParse({
     tokenMint: request.nextUrl.searchParams.get("tokenMint"),
     owner: request.nextUrl.searchParams.get("owner"),
+    tokenProgramId: request.nextUrl.searchParams.get("tokenProgramId") || undefined,
   });
 
   if (!parsedRequest.success) {
     return jsonError("Invalid request parameters.", 400);
   }
 
-  const { tokenMint, owner } = parsedRequest.data;
+  const { tokenMint, owner, tokenProgramId } = parsedRequest.data;
 
-  const cacheKey = getAtaCacheKey(tokenMint, owner);
+  const cacheKey = getAtaCacheKey(tokenMint, owner, tokenProgramId);
 
   const cached = await getCachedData(cacheKey);
   if (cached) return NextResponse.json<AtaResponse>(cached, { status: 200 });
@@ -61,9 +62,16 @@ export async function GET(
     const mintPublicKey = new PublicKey(tokenMint);
     const ownerPublicKey = new PublicKey(owner);
     const connection = new Connection(getSolanaRpcUrl(), "confirmed");
-    const mintInfo = await connection.getAccountInfo(mintPublicKey);
-    const programId = mintInfo?.owner;
-    const ata = getTokenATA(mintPublicKey, ownerPublicKey, programId);
+
+    let programPublicKey: PublicKey | undefined;
+    if (tokenProgramId) {
+      programPublicKey = new PublicKey(tokenProgramId);
+    } else {
+      const mintInfo = await connection.getAccountInfo(mintPublicKey);
+      programPublicKey = mintInfo?.owner;
+    }
+
+    const ata = getTokenATA(mintPublicKey, ownerPublicKey, programPublicKey);
     const ataAccount = await connection.getAccountInfo(ata);
 
     const response: AtaResponse = {
