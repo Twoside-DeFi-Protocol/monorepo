@@ -35,8 +35,9 @@ export function getTokenMetadataPDA(mint: anchor.web3.PublicKey): {
 export function getTokenATA(
   mint: anchor.web3.PublicKey,
   owner: anchor.web3.PublicKey,
+  programId?: anchor.web3.PublicKey,
 ) {
-  return splToken.getAssociatedTokenAddressSync(mint, owner);
+  return splToken.getAssociatedTokenAddressSync(mint, owner, false, programId);
 }
 
 export function getTokenDerivativePDA(mint: anchor.web3.PublicKey): {

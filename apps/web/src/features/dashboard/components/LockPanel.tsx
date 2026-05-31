@@ -36,8 +36,12 @@ import TokenInfo from "./TokenInfo";
 import { useDialog } from "@/components/Dialog";
 import { useTokenDerivative } from "../hooks/query/contract";
 import { useTokenAta } from "../hooks/query/ata";
+import { useTokenProgram } from "../hooks/query/tokens";
 import { isValidFloat } from "@/lib/utils";
-import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
+import {
+  createAssociatedTokenAccountInstruction,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import {
   developerKey,
@@ -94,6 +98,10 @@ export default function LockPanel() {
     return selectedTokens.lockToken[selectedBlockchain.id];
   }, [selectedTokens.lockToken[selectedBlockchain.id]]);
 
+  const { data: tokenProgramInfo, isLoading: tokenProgramLoading } = useTokenProgram(
+    selectedBlockchain.id === "solana" ? lockToken?.address : undefined
+  );
+
   const setTokenSelectorState = useSetAtom(tokenSelectorAtom);
 
   const handletokenSelectorTrigger = () => {
@@ -140,6 +148,7 @@ export default function LockPanel() {
     owner,
     tokenMint,
     transactionNumber,
+    tokenProgramId,
   }: {
     ata: PublicKey;
     exists: boolean;
@@ -147,6 +156,7 @@ export default function LockPanel() {
     owner: PublicKey;
     tokenMint: PublicKey;
     transactionNumber: 1 | 2;
+    tokenProgramId?: PublicKey;
   }) => {
     if (exists) {
       return;
@@ -165,6 +175,7 @@ export default function LockPanel() {
             ata,
             owner,
             tokenMint,
+            tokenProgramId,
           ),
         );
 
@@ -307,7 +318,7 @@ export default function LockPanel() {
       const tokenMint = new PublicKey(tokenAddress);
       const { pda: tokenMetadataPDA } = getTokenMetadataPDA(tokenMint);
       const userKey = new PublicKey(currentUser.address);
-      const userTokenAta = getTokenATA(tokenMint, userKey);
+      const userTokenAta = getTokenATA(tokenMint, userKey, tokenProgramInfo?.programId);
       const founderAtaAddress = founderAtaData?.data.ata;
       const developerAtaAddress = developerAtaData?.data.ata;
       if (!founderAtaAddress || !developerAtaAddress) {
@@ -325,6 +336,7 @@ export default function LockPanel() {
         owner: founderKey,
         tokenMint,
         transactionNumber: 1,
+        tokenProgramId: tokenProgramInfo?.programId,
       });
 
       await createAtaIfMissing({
@@ -334,6 +346,7 @@ export default function LockPanel() {
         owner: developerKey,
         tokenMint,
         transactionNumber: 2,
+        tokenProgramId: tokenProgramInfo?.programId,
       });
 
       await withConfirmation(
@@ -343,18 +356,34 @@ export default function LockPanel() {
             return;
           }
 
-          const txn = await program.methods
-            .lock(solLockAmount)
-            .accounts({
-              tokenMint: tokenMint,
-              tokenMetadata: tokenMetadataPDA,
-              signer: userKey,
-              signerTokenAta: userTokenAta,
-              developerAta: developerTokenAta,
-              founderAta: founderTokenAta,
-              mplTokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
-            })
-            .transaction();
+          const isToken2022 = tokenProgramInfo?.isToken2022 ?? false;
+          const tokenProgramId = tokenProgramInfo?.programId ?? TOKEN_PROGRAM_ID;
+
+          const txn = isToken2022
+            ? await program.methods
+              .lock2022(solLockAmount)
+              .accounts({
+                tokenProgram: tokenProgramId,
+                tokenMint: tokenMint,
+                tokenMetadata: null,
+                signer: userKey,
+                signerTokenAta: userTokenAta,
+                founderAta: founderTokenAta,
+                developerAta: developerTokenAta,
+              })
+              .transaction()
+            : await program.methods
+              .lock(solLockAmount)
+              .accounts({
+                tokenMint: tokenMint,
+                tokenMetadata: tokenMetadataPDA,
+                signer: userKey,
+                signerTokenAta: userTokenAta,
+                developerAta: developerTokenAta,
+                founderAta: founderTokenAta,
+                mplTokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+              })
+              .transaction();
 
           try {
             const signature = await sendTransaction(txn, connection, {
@@ -657,7 +686,10 @@ export default function LockPanel() {
 
       <FullScreenLoader
         show={
-          tokenDerivativeLoading || founderAtaLoading || developerAtaLoading
+          tokenDerivativeLoading ||
+          founderAtaLoading ||
+          developerAtaLoading ||
+          tokenProgramLoading
         }
       />
     </div>

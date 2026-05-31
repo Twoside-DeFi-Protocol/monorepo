@@ -60,8 +60,10 @@ export async function GET(
   try {
     const mintPublicKey = new PublicKey(tokenMint);
     const ownerPublicKey = new PublicKey(owner);
-    const ata = getTokenATA(mintPublicKey, ownerPublicKey);
     const connection = new Connection(getSolanaRpcUrl(), "confirmed");
+    const mintInfo = await connection.getAccountInfo(mintPublicKey);
+    const programId = mintInfo?.owner;
+    const ata = getTokenATA(mintPublicKey, ownerPublicKey, programId);
     const ataAccount = await connection.getAccountInfo(ata);
 
     const response: AtaResponse = {

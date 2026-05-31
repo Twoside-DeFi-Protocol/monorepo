@@ -37,6 +37,8 @@ import TokenInfo from "./TokenInfo";
 import { isValidFloat } from "@/lib/utils";
 import { PublicKey } from "@solana/web3.js";
 import { developerKey, founderKey, getTokenATA, toBN } from "../lib/sol/utils";
+import { useTokenProgram } from "../hooks/query/tokens";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { BN } from "@anchor-lang/core";
 import { useProgram } from "../lib/sol/anchor";
 import { useDialog } from "@/components/Dialog";
@@ -61,6 +63,10 @@ export default function UnlockPanel() {
   const unlockToken = useMemo(() => {
     return selectedTokens.unlockToken[selectedBlockchain.id];
   }, [selectedTokens.unlockToken[selectedBlockchain.id]]);
+
+  const { data: tokenProgramInfo, isLoading: tokenProgramLoading } = useTokenProgram(
+    selectedBlockchain.id === "solana" ? unlockToken?.address : undefined
+  );
 
   const setTokenSelectorState = useSetAtom(tokenSelectorAtom);
 
@@ -216,9 +222,9 @@ export default function UnlockPanel() {
         async () => {
           const tokenMint = new PublicKey(tokenAddress);
           const userKey = new PublicKey(currentUser.address);
-          const userTokenAta = getTokenATA(tokenMint, userKey);
-          const developerTokenAta = getTokenATA(tokenMint, developerKey);
-          const founderTokenAta = getTokenATA(tokenMint, founderKey);
+          const userTokenAta = getTokenATA(tokenMint, userKey, tokenProgramInfo?.programId);
+          const developerTokenAta = getTokenATA(tokenMint, developerKey, tokenProgramInfo?.programId);
+          const founderTokenAta = getTokenATA(tokenMint, founderKey, tokenProgramInfo?.programId);
           const solUnlockAmount = toBN(amount, decimals);
 
           if (!program) {
@@ -226,9 +232,12 @@ export default function UnlockPanel() {
             return;
           }
 
+          const tokenProgramId = tokenProgramInfo?.programId ?? TOKEN_PROGRAM_ID;
+
           const txn = await program.methods
             .unlock(solUnlockAmount)
             .accounts({
+              tokenProgram: tokenProgramId,
               tokenMint: tokenMint,
               signer: userKey,
               signerTokenAta: userTokenAta,
@@ -520,7 +529,7 @@ export default function UnlockPanel() {
         <Unlock /> Unlock Tokens
       </ThemedButton>
 
-      <FullScreenLoader show={tokenDerivativeLoading} />
+      <FullScreenLoader show={tokenDerivativeLoading || tokenProgramLoading} />
     </div>
   );
 }
