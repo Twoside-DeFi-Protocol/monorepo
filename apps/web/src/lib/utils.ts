@@ -24,7 +24,7 @@ export function getEvmRpcUrl(chain: "eth" | "base") {
 
 export function getSolanaRpcUrl() {
   const rpcUrl =
-    process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
+    process.env.SOL_RPC_URL ?? "https://api.mainnet-beta.solana.com";
 
   if (!rpcUrl) {
     throw new Error("RPC URL not configured for solana.");

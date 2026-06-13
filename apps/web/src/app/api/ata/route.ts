@@ -38,7 +38,13 @@ export async function GET(
   const cacheKey = getAtaCacheKey(tokenMint, owner, tokenProgramId);
 
   const cached = await getCachedData(cacheKey);
-  if (cached) return NextResponse.json<AtaResponse>(cached, { status: 200 });
+  if (cached) {
+    if (cached.data.exists) {
+      return NextResponse.json<AtaResponse>(cached, { status: 200 });
+    } else {
+      await redis.del(cacheKey);
+    }
+  }
 
   // 2. Try lock
   const lockKey = `lock:${cacheKey}`;
@@ -81,9 +87,11 @@ export async function GET(
       },
     };
 
-    await redis.set(cacheKey, response, {
-      ex: 3600,
-    });
+    if (response.data.exists) {
+      await redis.set(cacheKey, response, {
+        ex: 3600,
+      });
+    }
 
     return NextResponse.json<AtaResponse>(response, {
       status: 200,

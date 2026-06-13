@@ -6,10 +6,10 @@ const localTokens: CoinGeckoTokenType[] = [
     address: "74Ki6EoFx2nYCw3FiqTrEMS9tX6Ffiydhoqz9CSZ2GoL",
     name: "T22 2",
     symbol: "T22",
-    decimals: 18,
+    decimals: 9,
     logoURI: "/token-placeholder.png",
-  }
-]
+  },
+];
 
 export async function getTokensList(
   blockchain: Blockchain,

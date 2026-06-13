@@ -40,7 +40,7 @@ import { useTokenProgram } from "../hooks/query/tokens";
 import { isValidFloat } from "@/lib/utils";
 import {
   createAssociatedTokenAccountInstruction,
-  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import {
@@ -74,9 +74,10 @@ export default function LockPanel() {
     return selectedTokens.lockToken[selectedBlockchain.id];
   }, [selectedTokens.lockToken[selectedBlockchain.id]]);
 
-  const { data: tokenProgramInfo, isLoading: tokenProgramLoading } = useTokenProgram(
-    selectedBlockchain.id === "solana" ? lockToken?.address : undefined
-  );
+  const { data: tokenProgramInfo, isLoading: tokenProgramLoading } =
+    useTokenProgram(
+      selectedBlockchain.id === "solana" ? lockToken?.address : undefined,
+    );
 
   const isSolana = selectedBlockchain.id === "solana";
 
@@ -97,7 +98,7 @@ export default function LockPanel() {
     },
     {
       enabled: (!isSolana || !!tokenProgramInfo) && !!lockToken?.address,
-    }
+    },
   );
 
   const {
@@ -112,7 +113,7 @@ export default function LockPanel() {
     },
     {
       enabled: (!isSolana || !!tokenProgramInfo) && !!lockToken?.address,
-    }
+    },
   );
 
   const setTokenSelectorState = useSetAtom(tokenSelectorAtom);
@@ -201,7 +202,10 @@ export default function LockPanel() {
 
           await confirmTx(connection, sig);
         } catch (e: any) {
-          console.dir(e, { depth: 10 });
+          console.error("wallet error:", e);
+          console.error("message:", e?.message);
+          console.error("logs:", e?.logs);
+          console.error("cause:", e?.cause);
           throw e;
         }
       },
@@ -331,7 +335,11 @@ export default function LockPanel() {
       const tokenMint = new PublicKey(tokenAddress);
       const { pda: tokenMetadataPDA } = getTokenMetadataPDA(tokenMint);
       const userKey = new PublicKey(currentUser.address);
-      const userTokenAta = getTokenATA(tokenMint, userKey, tokenProgramInfo?.programId);
+      const userTokenAta = getTokenATA(
+        tokenMint,
+        userKey,
+        tokenProgramInfo?.programId,
+      );
       const founderAtaAddress = founderAtaData?.data.ata;
       const developerAtaAddress = developerAtaData?.data.ata;
       if (!founderAtaAddress || !developerAtaAddress) {
@@ -370,44 +378,55 @@ export default function LockPanel() {
           }
 
           const isToken2022 = tokenProgramInfo?.isToken2022 ?? false;
-          const tokenProgramId = tokenProgramInfo?.programId ?? TOKEN_PROGRAM_ID;
 
-          const txn = isToken2022
-            ? await program.methods
-              .lock2022(solLockAmount)
-              .accounts({
-                tokenProgram: tokenProgramId,
-                tokenMint: tokenMint,
-                tokenMetadata: null,
-                signer: userKey,
-                signerTokenAta: userTokenAta,
-                founderAta: founderTokenAta,
-                developerAta: developerTokenAta,
-              })
-              .transaction()
-            : await program.methods
-              .lock(solLockAmount)
-              .accounts({
-                tokenMint: tokenMint,
-                tokenMetadata: tokenMetadataPDA,
-                signer: userKey,
-                signerTokenAta: userTokenAta,
-                developerAta: developerTokenAta,
-                founderAta: founderTokenAta,
-                mplTokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
-              })
-              .transaction();
+          console.log("isToken2022: ", isToken2022);
 
           try {
-            const signature = await sendTransaction(txn, connection, {
-              preflightCommitment: "confirmed",
-            });
+            const txn = isToken2022
+              ? await program.methods
+                  .lock2022(solLockAmount)
+                  .accounts({
+                    tokenProgram: TOKEN_2022_PROGRAM_ID,
+                    tokenMint: tokenMint,
+                    tokenMetadata: null,
+                    signer: userKey,
+                    signerTokenAta: userTokenAta,
+                    founderAta: founderTokenAta,
+                    developerAta: developerTokenAta,
+                  })
+                  .transaction()
+              : await program.methods
+                  .lock(solLockAmount)
+                  .accounts({
+                    tokenMint: tokenMint,
+                    tokenMetadata: tokenMetadataPDA,
+                    signer: userKey,
+                    signerTokenAta: userTokenAta,
+                    developerAta: developerTokenAta,
+                    founderAta: founderTokenAta,
+                    mplTokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+                  })
+                  .transaction();
+
+            const latest = await connection.getLatestBlockhash("confirmed");
+            txn.feePayer = userKey;
+            txn.recentBlockhash = latest.blockhash;
+
+            console.log(txn);
+            console.log(txn.instructions);
+            console.log(txn.feePayer?.toBase58());
+            console.log(txn.recentBlockhash);
+
+            const signature = await sendTransaction(txn, connection);
 
             console.log("signature", signature);
 
             await confirmTx(connection, signature);
           } catch (e: any) {
-            console.dir(e, { depth: 10 });
+            console.error("wallet error:", e);
+            console.error("message:", e?.message);
+            console.error("logs:", e?.logs);
+            console.error("cause:", e?.cause);
             throw e;
           }
 

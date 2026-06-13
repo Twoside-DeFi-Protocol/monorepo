@@ -234,19 +234,19 @@ export default function UnlockPanel() {
 
           const tokenProgramId = tokenProgramInfo?.programId ?? TOKEN_PROGRAM_ID;
 
-          const txn = await program.methods
-            .unlock(solUnlockAmount)
-            .accounts({
-              tokenProgram: tokenProgramId,
-              tokenMint: tokenMint,
-              signer: userKey,
-              signerTokenAta: userTokenAta,
-              developerAta: developerTokenAta,
-              founderAta: founderTokenAta,
-            })
-            .transaction();
-
           try {
+            const txn = await program.methods
+              .unlock(solUnlockAmount)
+              .accounts({
+                tokenProgram: tokenProgramId,
+                tokenMint: tokenMint,
+                signer: userKey,
+                signerTokenAta: userTokenAta,
+                developerAta: developerTokenAta,
+                founderAta: founderTokenAta,
+              })
+              .transaction();
+
             const signature = await sendTransaction(txn, connection, {
               preflightCommitment: "confirmed",
             });
@@ -255,7 +255,10 @@ export default function UnlockPanel() {
 
             await confirmTx(connection, signature);
           } catch (e: any) {
-            console.dir(e, { depth: 10 });
+            console.error("wallet error:", e);
+            console.error("message:", e?.message);
+            console.error("logs:", e?.logs);
+            console.error("cause:", e?.cause);
             throw e;
           }
         },
